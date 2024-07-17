@@ -4,6 +4,8 @@ import (
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"net/http"
+	"we_book/internal/domain"
+	"we_book/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,10 +14,11 @@ import (
 type UserHandler struct {
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
+	svc         *service.UserService
 }
 
 // NewUserHandler 一定要在main.go中调用这个函数，否则会出现路由注册失败的问题
-func NewUserHandler() *UserHandler {
+func NewUserHandler(svc *service.UserService) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
@@ -25,6 +28,7 @@ func NewUserHandler() *UserHandler {
 	return &UserHandler{
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
+		svc:         svc,
 	}
 }
 
@@ -62,6 +66,7 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	email := ctx.Query("email")
 	password := ctx.Query("password")
 	confirmPassword := ctx.Query("confirm_password")
+	//email, password, confirmPassword := req.Email, req.Password, req.ConfirmPassword
 	fmt.Println(email, password, confirmPassword)
 
 	//邮箱格式校验
@@ -99,7 +104,13 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		ctx.String(http.StatusBadRequest, "password not match")
 		return
 	}
-	ctx.String(http.StatusOK, "success")
+	//ctx.String(http.StatusOK, "success")
+
+	// 调用 service 层的方法 保存用户信息
+	_ = u.svc.SignUp(ctx, domain.User{
+		Email:    email,
+		Password: password,
+	})
 }
 
 // SignIn 实现 user 相关的 signin 接口
