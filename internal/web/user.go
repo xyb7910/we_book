@@ -39,7 +39,7 @@ func (u *UserHandler) RegisterRoute(server *gin.Engine) {
 
 	// 定义其他路由
 	user.POST("/signup", u.SignUp)
-	user.POST("/signin", u.SignIn)
+	user.POST("/signin", u.Login)
 	user.GET("/profile", u.Profile)
 	user.GET("/logout", u.Logout)
 	user.GET("/edit", u.Edit)
@@ -106,15 +106,24 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	}
 	//ctx.String(http.StatusOK, "success")
 
-	// 调用 service 层的方法 保存用户信息
-	_ = u.svc.SignUp(ctx, domain.User{
+	// 调用 service 层的方法 保存用户信息， 并且进行相关的校验
+	err = u.svc.SignUp(ctx, domain.User{
 		Email:    email,
 		Password: password,
 	})
+
+	if err == service.ErrUserDuplicateEmail {
+		ctx.String(http.StatusBadRequest, "email already exists")
+		return
+	}
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, "internal server error, SigUp failed")
+		return
+	}
 }
 
-// SignIn 实现 user 相关的 signin 接口
-func (u *UserHandler) SignIn(context *gin.Context) {
+// SignIn 实现 user 相关的 Login 接口
+func (u *UserHandler) Login(context *gin.Context) {
 
 }
 

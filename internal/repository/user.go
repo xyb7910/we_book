@@ -6,6 +6,11 @@ import (
 	"we_book/internal/repository/dao"
 )
 
+var (
+	ErrUserDuplicateEmail = dao.ErrUserDuplicateEmail
+	ErrUserNotFound       = dao.ErrUserNotFound
+)
+
 type UserRepository struct {
 	dao *dao.UserDAO
 }
