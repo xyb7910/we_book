@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
+	"github.com/gin-contrib/sessions"
 	"net/http"
 	"we_book/internal/domain"
 	"we_book/internal/service"
@@ -39,7 +40,7 @@ func (u *UserHandler) RegisterRoute(server *gin.Engine) {
 
 	// 定义其他路由
 	user.POST("/signup", u.SignUp)
-	user.POST("/signin", u.Login)
+	user.POST("/login", u.Login)
 	user.GET("/profile", u.Profile)
 	user.GET("/logout", u.Logout)
 	user.GET("/edit", u.Edit)
@@ -122,9 +123,37 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	}
 }
 
-// SignIn 实现 user 相关的 Login 接口
-func (u *UserHandler) Login(context *gin.Context) {
+// Login 实现 user 相关的 Login 接口
+func (u *UserHandler) Login(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
 
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	email := ctx.Query("email")
+	password := ctx.Query("password")
+	user, err := u.svc.Login(ctx, email, password)
+	if err == service.ErrInvalidUserOrPassword {
+		ctx.String(http.StatusBadRequest, "invalid user or password")
+		return
+	}
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, "internal server error, Login failed")
+		return
+	}
+	// 设置 session
+	sess := sessions.Default(ctx)
+	sess.Set("user_id", user.Id)
+	err = sess.Save()
+	if err != nil {
+		return
+	}
+	ctx.String(http.StatusOK, "success")
+	return
 }
 
 // Profile 实现 user 相关的 profile 接口

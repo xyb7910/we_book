@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrUserDuplicateEmail  = repository.ErrUserDuplicateEmail
-	ErrUserInvalidPassword = errors.New("invalid password or email")
+	ErrUserDuplicateEmail    = repository.ErrUserDuplicateEmail
+	ErrInvalidUserOrPassword = errors.New("invalid password or email")
 )
 
 type UserService struct {
@@ -31,4 +31,17 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 	}
 	u.Password = string(hash)
 	return svc.repo.Create(ctx, u)
+}
+
+func (svc *UserService) Login(ctx context.Context, email, password string) (domain.User, error) {
+	u, err := svc.repo.FindByEmail(ctx, email)
+	if err == repository.ErrUserNotFound {
+		return domain.User{}, ErrInvalidUserOrPassword
+	}
+	// 进行密码校验
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	if err != nil {
+		return domain.User{}, ErrInvalidUserOrPassword
+	}
+	return u, err
 }

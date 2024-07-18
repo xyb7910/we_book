@@ -37,8 +37,14 @@ func (ud *UserDAO) Insert(ctx context.Context, user User) error {
 	return err
 }
 
+func (ud *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
+	var user User
+	err := ud.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	return user, err
+}
+
 type User struct {
-	Id       int    `gorm:"primaryKey, autoIncrement"`
+	Id       int64  `gorm:"primaryKey, autoIncrement"`
 	Email    string `gorm:"type:varchar(100);uniqueIndex"`
 	Password string `gorm:"type:varchar(100)"`
 

@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -11,6 +13,7 @@ import (
 	"we_book/internal/repository/dao"
 	"we_book/internal/service"
 	"we_book/internal/web"
+	"we_book/internal/web/middleware"
 )
 
 func main() {
@@ -37,7 +40,7 @@ func initServer() *gin.Engine {
 	// 实现跨域问题
 	server.Use(cors.New(cors.Config{
 		AllowCredentials: true,
-		AllowHeaders:     []string{"Content-Type"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowOriginFunc: func(origin string) bool {
 			if strings.HasPrefix(origin, "http://localhost") {
 				return true
@@ -46,6 +49,14 @@ func initServer() *gin.Engine {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
+
+	// 使用 cookie 实现 session
+	store := cookie.NewStore([]byte("secret"))
+	// 使用 gin 中间件实现 session
+	server.Use(sessions.Sessions("ssid", store))
+	// 使用中间件实现登录校验
+	middleware.IgnorePaths = []string{"sss"}
+	server.Use(middleware.CheckLogin())
 	return server
 }
 
