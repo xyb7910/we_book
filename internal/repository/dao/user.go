@@ -52,4 +52,14 @@ type User struct {
 	Ctime int64
 	// 更新时间 毫秒级
 	Utime int64
+
+	// 与 用户信息表 关联
+	UserInfo UserInfo `gorm:"foreignKey:UserId"`
+}
+
+type UserInfo struct {
+	UserId       int64  `gorm:"primaryKey, autoIncrement"`
+	NickName     string `gorm:"type:varchar(100)"`
+	Birthday     string `gorm:"type:varchar(100)"`
+	Introduction string `gorm:"type:varchar(100)"`
 }

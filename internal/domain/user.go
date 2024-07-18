@@ -9,3 +9,9 @@ type User struct {
 	Password string
 	Ctime    time.Time
 }
+
+type UserInfo struct {
+	NickName     string
+	Birthday     string
+	Introduction string
+}

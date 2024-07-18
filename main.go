@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -51,11 +51,22 @@ func initServer() *gin.Engine {
 	}))
 
 	// 使用 cookie 实现 session
-	store := cookie.NewStore([]byte("secret"))
+	//store := cookie.NewStore([]byte("secret"))
+	// 使用 redis 实现 session
+	store, err := redis.NewStore(16, "tcp",
+		"localhost:6379", "",
+		[]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), []byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
+	if err != nil {
+		panic(err)
+	}
 	// 使用 gin 中间件实现 session
-	server.Use(sessions.Sessions("ssid", store))
+	server.Use(sessions.Sessions("my_session", store))
 	// 使用中间件实现登录校验
-	middleware.IgnorePaths = []string{"sss"}
+	//server.Use(middleware.NewLoginMiddlewareBuilder().
+	//	IgnorePaths("/users/signup").
+	//	IgnorePaths("/users/login").
+	//	Build())
+	middleware.IgnorePaths = []string{"/users/signup", "/users/login"}
 	server.Use(middleware.CheckLogin())
 	return server
 }

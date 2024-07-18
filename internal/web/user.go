@@ -72,16 +72,16 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 
 	//邮箱格式校验
 	if u.emailExp == nil {
-		ctx.String(http.StatusInternalServerError, "email regexp error")
+		ctx.String(http.StatusOK, "email regexp error")
 		return
 	}
-	isEmail, err := u.emailExp.MatchString(email)
+	isEmail, err := u.emailExp.MatchString(req.Email)
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "email regexp error")
+		ctx.String(http.StatusOK, "email regexp error")
 		return
 	}
 	if !isEmail {
-		ctx.String(http.StatusBadRequest, "email format error")
+		ctx.String(http.StatusOK, "email format error")
 		return
 	}
 
@@ -90,19 +90,19 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	//	ctx.String(http.StatusInternalServerError, "password regexp error")
 	//	return
 	//}
-	isPassword, err := u.passwordExp.MatchString(password)
+	isPassword, err := u.passwordExp.MatchString(req.Password)
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "password regexp error")
+		ctx.String(http.StatusOK, "password regexp error")
 		return
 	}
 	if !isPassword {
-		ctx.String(http.StatusBadRequest, "password format error")
+		ctx.String(http.StatusOK, "password format error")
 		return
 	}
 
 	// 检验两次密码是否一致
-	if password != confirmPassword {
-		ctx.String(http.StatusBadRequest, "password not match")
+	if req.Password != req.ConfirmPassword {
+		ctx.String(http.StatusOK, "password not match")
 		return
 	}
 	//ctx.String(http.StatusOK, "success")
@@ -114,13 +114,14 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	})
 
 	if err == service.ErrUserDuplicateEmail {
-		ctx.String(http.StatusBadRequest, "email already exists")
+		ctx.String(http.StatusOK, "email already exists")
 		return
 	}
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "internal server error, SigUp failed")
+		ctx.String(http.StatusOK, "internal server error, SigUp failed")
 		return
 	}
+	ctx.String(http.StatusOK, "success")
 }
 
 // Login 实现 user 相关的 Login 接口
@@ -136,13 +137,14 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	}
 	email := ctx.Query("email")
 	password := ctx.Query("password")
-	user, err := u.svc.Login(ctx, email, password)
+	fmt.Println(email, password)
+	user, err := u.svc.Login(ctx, req.Email, req.Password)
 	if err == service.ErrInvalidUserOrPassword {
-		ctx.String(http.StatusBadRequest, "invalid user or password")
+		ctx.String(http.StatusOK, "invalid user or password")
 		return
 	}
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "internal server error, Login failed")
+		ctx.String(http.StatusOK, "internal server error, Login failed")
 		return
 	}
 	// 设置 session
@@ -168,5 +170,25 @@ func (u *UserHandler) Logout(context *gin.Context) {
 
 // Edit 实现 user 相关的 edit 接口
 func (u *UserHandler) Edit(context *gin.Context) {
-
+	//type EditReq struct {
+	//	NickName     string
+	//	Birthday     string
+	//	introduction string
+	//}
+	//
+	//var req EditReq
+	//if err := context.Bind(&req); err != nil {
+	//	return
+	//}
+	//nickName := context.Query("nick_name")
+	//birthday := context.Query("birthday")
+	//introduction := context.Query("introduction")
+	//err := u.svc.Edit(ctx, domain.UserInfo{
+	//	NickName:     nickName,
+	//	Birthday:     birthday,
+	//	Introduction: introduction,
+	//})
+	//if err != nil {
+	//	return
+	//}
 }
