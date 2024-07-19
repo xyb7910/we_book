@@ -3,12 +3,14 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
 	"time"
+	"we_book/internal/pkg/ginx/middlewares/ratelimit"
 	"we_book/internal/repository"
 	"we_book/internal/repository/dao"
 	"we_book/internal/service"
@@ -51,15 +53,16 @@ func initServer() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	// 新建一个 redis 客户端
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
+
 	// 使用 cookie 实现 session
 	//store := cookie.NewStore([]byte("secret"))
 	// 使用 redis 实现 session
-	store, err := redis.NewStore(16, "tcp",
-		"localhost:6379", "",
-		[]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), []byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
-	if err != nil {
-		panic(err)
-	}
+	store := memstore.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), []byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
 	// 使用 gin 中间件实现 session
 	server.Use(sessions.Sessions("my_session", store))
 	// 使用中间件实现登录校验

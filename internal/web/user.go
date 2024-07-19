@@ -150,7 +150,8 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 		},
-		Uid: user.Id,
+		Uid:       user.Id,
+		UserAgent: ctx.Request.UserAgent(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenStr, err := token.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
@@ -262,5 +263,6 @@ type UserClaims struct {
 	jwt.RegisteredClaims
 
 	// 声明自己的字段
-	Uid int64 `json:"uid"`
+	Uid       int64 `json:"uid"`
+	UserAgent string
 }
