@@ -41,6 +41,7 @@ func initServer() *gin.Engine {
 	server.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"x-jwt-token"},
 		AllowOriginFunc: func(origin string) bool {
 			if strings.HasPrefix(origin, "http://localhost") {
 				return true
@@ -62,12 +63,12 @@ func initServer() *gin.Engine {
 	// 使用 gin 中间件实现 session
 	server.Use(sessions.Sessions("my_session", store))
 	// 使用中间件实现登录校验
-	//server.Use(middleware.NewLoginMiddlewareBuilder().
-	//	IgnorePaths("/users/signup").
-	//	IgnorePaths("/users/login").
-	//	Build())
-	middleware.IgnorePaths = []string{"/users/signup", "/users/login"}
-	server.Use(middleware.CheckLogin())
+	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
+		IgnorePaths("/users/signup").
+		IgnorePaths("/users/login").
+		Build())
+	//middleware.IgnorePaths = []string{"/users/signup", "/users/login"}
+	//server.Use(middleware.CheckLogin())
 	return server
 }
 

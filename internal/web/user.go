@@ -4,7 +4,9 @@ import (
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"time"
 	"we_book/internal/domain"
 	"we_book/internal/service"
 
@@ -41,7 +43,7 @@ func (u *UserHandler) RegisterRoute(server *gin.Engine) {
 	// 定义其他路由
 	user.POST("/signup", u.SignUp)
 	user.POST("/login", u.Login)
-	user.GET("/profile", u.Profile)
+	user.GET("/profile", u.ProfileJWT)
 	user.GET("/logout", u.Logout)
 	user.GET("/edit", u.Edit)
 }
@@ -124,6 +126,44 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "success")
 }
 
+func (u *UserHandler) LoginJWT(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	user, err := u.svc.Login(ctx, req.Email, req.Password)
+	if err == service.ErrInvalidUserOrPassword {
+		ctx.String(http.StatusOK, "invalid user or password")
+		return
+	}
+	if err != nil {
+		ctx.String(http.StatusOK, "internal server error, Login failed")
+		return
+	}
+	// 使用 JWT 进行登录 并将 用户的 id 存储在 token 中
+	claims := UserClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+		Uid: user.Id,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	tokenStr, err := token.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, "internal server error, Login failed")
+		return
+	}
+	ctx.Header("x-jwt-token", tokenStr)
+	fmt.Println(user)
+	ctx.String(http.StatusOK, "success")
+	return
+}
+
 // Login 实现 user 相关的 Login 接口
 func (u *UserHandler) Login(ctx *gin.Context) {
 	type LoginReq struct {
@@ -150,6 +190,11 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	// 设置 session
 	sess := sessions.Default(ctx)
 	sess.Set("user_id", user.Id)
+	sess.Options(sessions.Options{
+		Secure:   true,
+		HttpOnly: true,
+		MaxAge:   60,
+	})
 	err = sess.Save()
 	if err != nil {
 		return
@@ -158,14 +203,34 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	return
 }
 
-// Profile 实现 user 相关的 profile 接口
-func (u *UserHandler) Profile(context *gin.Context) {
+// ProfileJWT 实现 user 相关的 profile 接口
+func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
+	c, _ := ctx.Get("claims")
+	claims, ok := c.(*UserClaims)
+	if !ok {
+		ctx.String(http.StatusOK, "invalid token")
+		return
+	}
+	println(claims.Uid)
+	ctx.String(http.StatusOK, "This is profile")
+}
 
+// Profile 实现 user 相关的 profile 接口
+func (u *UserHandler) Profile(ctx *gin.Context) {
+
+	ctx.String(http.StatusOK, "This is profile")
 }
 
 // Logout 实现 user 相关的 logout 接口
-func (u *UserHandler) Logout(context *gin.Context) {
-
+func (u *UserHandler) Logout(ctx *gin.Context) {
+	sess := sessions.Default(ctx)
+	sess.Options(sessions.Options{
+		Secure:   true,
+		HttpOnly: true,
+		MaxAge:   60,
+	})
+	sess.Save()
+	ctx.String(http.StatusOK, "success")
 }
 
 // Edit 实现 user 相关的 edit 接口
@@ -191,4 +256,11 @@ func (u *UserHandler) Edit(context *gin.Context) {
 	//if err != nil {
 	//	return
 	//}
+}
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+
+	// 声明自己的字段
+	Uid int64 `json:"uid"`
 }
