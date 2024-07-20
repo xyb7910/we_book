@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"time"
 	"we_book/internal/domain"
+	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
 )
 
@@ -14,7 +15,8 @@ var (
 )
 
 type UserRepository struct {
-	dao *dao.UserDAO
+	dao   *dao.UserDAO
+	cache *cache.UserCache
 }
 
 func NewUserRepository(dao *dao.UserDAO) *UserRepository {
@@ -66,11 +68,24 @@ func (ur *UserRepository) toDaoUser(u domain.User) dao.User {
 }
 
 func (ur *UserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
-	user, err := ur.dao.FindById(ctx, id)
-	if err != nil {
-		return domain.User{}, nil
+	// 优先从缓存中获取
+	user, err := ur.cache.Get(ctx, id)
+	// 如果缓存中有， 直接返回
+	if err == nil {
+		return user, nil
 	}
-	return ur.toDomainUser(user), nil
+	// 如果缓存中没有， 从数据库中获取
+	//if err == cache.ErrCacheMiss {
+	//	// 打印日志等等
+	//}
+
+	userEntity, err := ur.dao.FindById(ctx, id)
+	u := ur.toDomainUser(userEntity)
+	err = ur.cache.Set(ctx, u)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return u, nil
 }
 
 func (ur *UserRepository) Edit(ctx *gin.Context, info domain.User) error {
