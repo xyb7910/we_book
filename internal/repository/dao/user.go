@@ -43,6 +43,16 @@ func (ud *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) 
 	return user, err
 }
 
+func (ud *UserDAO) FindById(ctx context.Context, id int64) (User, error) {
+	var user User
+	err := ud.db.WithContext(ctx).First(&User{}, id).First(&user).Error
+	return user, err
+}
+
+func (ud *UserDAO) UpdateById(ctx context.Context, user User) error {
+	return ud.db.WithContext(ctx).Model(user).Where("id = ?", user.Id).Updates(user).Error
+}
+
 type User struct {
 	Id       int64  `gorm:"primaryKey, autoIncrement"`
 	Email    string `gorm:"type:varchar(100);uniqueIndex"`
@@ -53,13 +63,8 @@ type User struct {
 	// 更新时间 毫秒级
 	Utime int64
 
-	// 与 用户信息表 关联
-	UserInfo UserInfo `gorm:"foreignKey:UserId"`
-}
-
-type UserInfo struct {
-	UserId       int64  `gorm:"primaryKey, autoIncrement"`
+	// 用户信息
 	NickName     string `gorm:"type:varchar(100)"`
-	Birthday     string `gorm:"type:varchar(100)"`
+	Birthday     int64
 	Introduction string `gorm:"type:varchar(100)"`
 }

@@ -218,7 +218,29 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 
 // Profile 实现 user 相关的 profile 接口
 func (u *UserHandler) Profile(ctx *gin.Context) {
-
+	type UserProfile struct {
+		NickName     string `json:"nick_name"`
+		Birthday     string `json:"birthday"`
+		Email        string `json:"email"`
+		Introduction string `json:"introduction"`
+	}
+	// 通过 jwt 荷载的信息来获取用户的 id
+	uc, ok := ctx.MustGet("claims").(*UserClaims)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	user, err := u.svc.FindById(ctx, uc.Uid)
+	if err != nil {
+		ctx.String(http.StatusOK, "internal server error, FindById failed")
+		return
+	}
+	ctx.JSON(http.StatusOK, UserProfile{
+		NickName:     user.NickName,
+		Birthday:     user.Birthday.Format("2006-01-02"),
+		Email:        user.Email,
+		Introduction: user.Introduction,
+	})
 	ctx.String(http.StatusOK, "This is profile")
 }
 
@@ -235,30 +257,43 @@ func (u *UserHandler) Logout(ctx *gin.Context) {
 }
 
 // Edit 实现 user 相关的 edit 接口
-func (u *UserHandler) Edit(context *gin.Context) {
-	//type EditReq struct {
-	//	NickName     string
-	//	Birthday     string
-	//	introduction string
-	//}
-	//
-	//var req EditReq
-	//if err := context.Bind(&req); err != nil {
-	//	return
-	//}
-	//nickName := context.Query("nick_name")
-	//birthday := context.Query("birthday")
-	//introduction := context.Query("introduction")
-	//err := u.svc.Edit(ctx, domain.UserInfo{
-	//	NickName:     nickName,
-	//	Birthday:     birthday,
-	//	Introduction: introduction,
-	//})
-	//if err != nil {
-	//	return
-	//}
+func (u *UserHandler) Edit(ctx *gin.Context) {
+	type EditReq struct {
+		NickName     string `json:"nick_name"`
+		Birthday     string `json:"birthday"`
+		Introduction string `json:"introduction"`
+	}
+
+	var req EditReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	// 考虑 基于 jwt 携带参数来实现
+	uc, ok := ctx.MustGet("claims").(*UserClaims)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	// 对用户输入的信息进行校验
+	birthday, err := time.Parse("2006-01-02", req.Birthday)
+	if err != nil {
+		ctx.String(http.StatusOK, "birthday format error")
+		return
+	}
+	err = u.svc.Edit(ctx, domain.User{
+		Id:           uc.Uid,
+		NickName:     req.NickName,
+		Birthday:     birthday,
+		Introduction: req.Introduction,
+	})
+	if err != nil {
+		ctx.String(http.StatusOK, "internal server error, Edit failed")
+		return
+	}
+	ctx.String(http.StatusOK, "success")
 }
 
+// UserClaims jwt token 携带的信息
 type UserClaims struct {
 	jwt.RegisteredClaims
 

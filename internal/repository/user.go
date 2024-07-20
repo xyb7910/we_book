@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"github.com/gin-gonic/gin"
+	"time"
 	"we_book/internal/domain"
 	"we_book/internal/repository/dao"
 )
@@ -40,6 +42,37 @@ func (ur *UserRepository) FindByEmail(ctx context.Context, email string) (domain
 	}, nil
 }
 
-func (ur *UserRepository) FindById(id int) {
+// 因为 dao 层的 user 与 domain 层的 user 字段名不一致，所以需要转换
+func (ur *UserRepository) toDomainUser(u dao.User) domain.User {
+	return domain.User{
+		Id:           u.Id,
+		Email:        u.Email,
+		Password:     u.Password,
+		NickName:     u.NickName,
+		Birthday:     time.UnixMilli(u.Birthday),
+		Introduction: u.Introduction,
+	}
+}
 
+func (ur *UserRepository) toDaoUser(u domain.User) dao.User {
+	return dao.User{
+		Id:           u.Id,
+		Email:        u.Email,
+		Password:     u.Password,
+		NickName:     u.NickName,
+		Birthday:     u.Birthday.UnixMilli(),
+		Introduction: u.Introduction,
+	}
+}
+
+func (ur *UserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+	user, err := ur.dao.FindById(ctx, id)
+	if err != nil {
+		return domain.User{}, nil
+	}
+	return ur.toDomainUser(user), nil
+}
+
+func (ur *UserRepository) Edit(ctx *gin.Context, info domain.User) error {
+	return ur.dao.UpdateById(ctx, ur.toDaoUser(info))
 }

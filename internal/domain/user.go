@@ -7,11 +7,9 @@ type User struct {
 	Id       int64
 	Email    string
 	Password string
-	Ctime    time.Time
-}
+	//Ctime    time.Time
 
-type UserInfo struct {
 	NickName     string
-	Birthday     string
+	Birthday     time.Time
 	Introduction string
 }

@@ -16,8 +16,10 @@ func NewLoginMiddlewareBuilder() *LoginMiddlewareBuilder {
 	return &LoginMiddlewareBuilder{}
 }
 
-func (l *LoginMiddlewareBuilder) IgnorePaths(path string) *LoginMiddlewareBuilder {
-	l.paths = append(l.paths, path)
+func (l *LoginMiddlewareBuilder) IgnorePaths(path []string) *LoginMiddlewareBuilder {
+	for _, p := range path {
+		l.paths = append(l.paths, p)
+	}
 	return l
 }
 
@@ -40,13 +42,13 @@ func (l *LoginMiddlewareBuilder) Build() gin.HandlerFunc {
 	}
 }
 
-var IgnorePaths []string
+//var IgnorePaths []string
 
-func CheckLogin() gin.HandlerFunc {
+func (l *LoginMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 	gob.Register(time.Time{})
 	return func(ctx *gin.Context) {
 		// 不需要校验的
-		for _, path := range IgnorePaths {
+		for _, path := range l.paths {
 			if ctx.Request.URL.Path == path {
 				return
 			}

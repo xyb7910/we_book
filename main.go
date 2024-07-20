@@ -22,7 +22,7 @@ func main() {
 	server := initServer()
 	db := initDB()
 
-	// 实现 user 相关路由的注册
+	//实现 user 相关路由的注册
 	u := initUser(db)
 	u.RegisterRoute(server)
 
@@ -60,9 +60,14 @@ func initServer() *gin.Engine {
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
 	// 使用 cookie 实现 session
-	//store := cookie.NewStore([]byte("secret"))
-	// 使用 redis 实现 session
+	//store := cookie.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
+	// 使用 内存 实现 session
 	store := memstore.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), []byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
+	// 使用 redis 实现 session
+	//store, err := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), redisClient)
+	//if err != nil {
+	//	panic(err)
+	//}
 	// 使用 gin 中间件实现 session
 	server.Use(sessions.Sessions("my_session", store))
 	// 使用中间件实现登录校验
@@ -70,7 +75,10 @@ func initServer() *gin.Engine {
 		IgnorePaths("/users/signup").
 		IgnorePaths("/users/login").
 		Build())
-	//middleware.IgnorePaths = []string{"/users/signup", "/users/login"}
+
+	//login := middleware.NewLoginMiddlewareBuilder()
+	//IgnorePaths := []string{"/users/signup", "/users/login"}
+	//login.IgnorePaths(IgnorePaths)
 	//server.Use(middleware.CheckLogin())
 	return server
 }
