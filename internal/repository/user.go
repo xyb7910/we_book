@@ -19,9 +19,10 @@ type UserRepository struct {
 	cache *cache.UserCache
 }
 
-func NewUserRepository(dao *dao.UserDAO) *UserRepository {
+func NewUserRepository(dao *dao.UserDAO, c *cache.UserCache) *UserRepository {
 	return &UserRepository{
-		dao: dao,
+		dao:   dao,
+		cache: c,
 	}
 }
 
@@ -81,10 +82,8 @@ func (ur *UserRepository) FindById(ctx context.Context, id int64) (domain.User, 
 
 	userEntity, err := ur.dao.FindById(ctx, id)
 	u := ur.toDomainUser(userEntity)
-	err = ur.cache.Set(ctx, u)
-	if err != nil {
-		return domain.User{}, err
-	}
+	_ = ur.cache.Set(ctx, u)
+	// 忽略错误，可能是 redis 服务挂了
 	return u, nil
 }
 
