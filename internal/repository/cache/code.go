@@ -29,6 +29,7 @@ type CodeCache struct {
 }
 
 func NewCodeCache(client redis.Cmdable) *CodeCache {
+	fmt.Println("hello")
 	return &CodeCache{
 		client: client,
 	}

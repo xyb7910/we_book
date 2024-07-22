@@ -13,15 +13,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var biz = "login"
+
 // UserHandler 我准备在它上面定义跟用户有关的路由
 type UserHandler struct {
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
 	svc         *service.UserService
+	codeSvc     *service.CodeService
 }
 
 // NewUserHandler 一定要在main.go中调用这个函数，否则会出现路由注册失败的问题
-func NewUserHandler(svc *service.UserService) *UserHandler {
+func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
@@ -32,6 +35,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
 		svc:         svc,
+		codeSvc:     codeSvc,
 	}
 }
 
@@ -46,6 +50,8 @@ func (u *UserHandler) RegisterRoute(server *gin.Engine) {
 	user.GET("/profile", u.ProfileJWT)
 	user.GET("/logout", u.Logout)
 	user.GET("/edit", u.Edit)
+	user.POST("/login_sms/code/send", u.SendLoginSMSCode)
+	user.POST("/login_sms/code/verify", u.VerifyLoginSMSCode)
 }
 
 // SignUp 实现 user 相关的 signup 接口
@@ -291,6 +297,30 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 		return
 	}
 	ctx.String(http.StatusOK, "success")
+}
+
+func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
+	type Request struct {
+		Phone string `json:"phone"`
+	}
+	var req Request
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	err := u.codeSvc.Send(ctx, biz, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "send sms code failed",
+		})
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "send success",
+	})
+}
+
+func (u *UserHandler) VerifyLoginSMSCode(context *gin.Context) {
+
 }
 
 // UserClaims jwt token 携带的信息

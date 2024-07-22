@@ -10,10 +10,11 @@ import (
 	"gorm.io/gorm"
 	"strings"
 	"time"
-	"we_book/internal/pkg/ginx/middlewares/ratelimit"
 	"we_book/internal/repository"
+	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
 	"we_book/internal/service"
+	"we_book/internal/service/sms/memory"
 	"we_book/internal/web"
 	"we_book/internal/web/middleware"
 )
@@ -21,19 +22,31 @@ import (
 func main() {
 	server := initServer()
 	db := initDB()
-
+	rdb := initRedis()
 	//实现 user 相关路由的注册
-	u := initUser(db)
+	u := initUser(db, rdb)
 	u.RegisterRoute(server)
 
 	_ = server.Run(":8080")
 }
 
-func initUser(db *gorm.DB) *web.UserHandler {
+func initRedis() redis.Cmdable {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:16379",
+	})
+	return redisClient
+}
+
+func initUser(db *gorm.DB, rdb redis.Cmdable) *web.UserHandler {
 	ud := dao.NewUserDAO(db)
-	repo := repository.NewUserRepository(ud)
+	uc := cache.NewUserCache(rdb)
+	repo := repository.NewUserRepository(ud, uc)
 	svc := service.NewUserService(repo)
-	u := web.NewUserHandler(svc)
+	codeCache := cache.NewCodeCache(rdb)
+	codeRepo := repository.NewCodeRepository(codeCache)
+	smsSvc := memory.NewService()
+	codeSvc := service.NewCodeService(codeRepo, smsSvc)
+	u := web.NewUserHandler(svc, codeSvc)
 	return u
 }
 
@@ -54,10 +67,8 @@ func initServer() *gin.Engine {
 	}))
 
 	// 新建一个 redis 客户端
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
+	//redisClient := initRedis()
+	//server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
 	// 使用 cookie 实现 session
 	//store := cookie.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
@@ -74,6 +85,8 @@ func initServer() *gin.Engine {
 	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
 		IgnorePaths("/users/signup").
 		IgnorePaths("/users/login").
+		IgnorePaths("/users/login_sms/code/send").
+		IgnorePaths("/users/login_sms/code/verify").
 		Build())
 
 	//login := middleware.NewLoginMiddlewareBuilder()

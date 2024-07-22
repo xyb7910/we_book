@@ -15,6 +15,13 @@ type CodeService struct {
 	smsSvc sms.Service
 }
 
+func NewCodeService(repo *repository.CodeRepository, smsSvc sms.Service) *CodeService {
+	return &CodeService{
+		repo:   repo,
+		smsSvc: smsSvc,
+	}
+}
+
 func (svc *CodeService) genCode() string {
 	num := rand.Intn(1000000)
 	return fmt.Sprintf("%06d", num)
