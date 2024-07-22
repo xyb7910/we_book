@@ -51,7 +51,7 @@ func (u *UserHandler) RegisterRoute(server *gin.Engine) {
 	user.GET("/logout", u.Logout)
 	user.GET("/edit", u.Edit)
 	user.POST("/login_sms/code/send", u.SendLoginSMSCode)
-	user.POST("/login_sms/code/verify", u.VerifyLoginSMSCode)
+	user.POST("/login_sms", u.VerifyLoginSMSCode)
 }
 
 // SignUp 实现 user 相关的 signup 接口
@@ -152,23 +152,30 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		return
 	}
 	// 使用 JWT 进行登录 并将 用户的 id 存储在 token 中
+	if err := u.setJWTToken(ctx, user.Id); err != nil {
+		return
+	}
+	fmt.Println(user)
+	ctx.String(http.StatusOK, "success")
+	return
+}
+
+func (u *UserHandler) setJWTToken(ctx *gin.Context, uid int64) error {
 	claims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 		},
-		Uid:       user.Id,
+		Uid:       uid,
 		UserAgent: ctx.Request.UserAgent(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenStr, err := token.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "internal server error, Login failed")
-		return
+		//ctx.String(http.StatusInternalServerError, "internal server error, Login failed")
+		return err
 	}
 	ctx.Header("x-jwt-token", tokenStr)
-	fmt.Println(user)
-	ctx.String(http.StatusOK, "success")
-	return
+	return nil
 }
 
 // Login 实现 user 相关的 Login 接口
@@ -319,7 +326,50 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	})
 }
 
-func (u *UserHandler) VerifyLoginSMSCode(context *gin.Context) {
+func (u *UserHandler) VerifyLoginSMSCode(ctx *gin.Context) {
+	type Request struct {
+		Phone string
+		Code  string
+	}
+	var req Request
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	ok, err := u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "backend error",
+		})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "verify code failed",
+		})
+	}
+	// 接下来，如果系统有这个手机号，则直接登录
+	// 如果没有，则进行注册
+	user, err := u.svc.FindOrCreate(ctx, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "backend error",
+		})
+	}
+	//fmt.Println(user.Id)
+	if err := u.setJWTToken(ctx, user.Id); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "backend error",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "login success",
+	})
 
 }
 

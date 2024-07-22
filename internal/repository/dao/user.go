@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
@@ -9,8 +10,8 @@ import (
 )
 
 var (
-	ErrUserDuplicateEmail = errors.New("user duplicate email")
-	ErrUserNotFound       = gorm.ErrRecordNotFound
+	ErrUserDuplicate = errors.New("user duplicate email or phone")
+	ErrUserNotFound  = gorm.ErrRecordNotFound
 )
 
 type UserDAO struct {
@@ -31,7 +32,7 @@ func (ud *UserDAO) Insert(ctx context.Context, user User) error {
 	if sqlError, ok := err.(*mysql.MySQLError); ok {
 		const uniqueIndexErrNo = 1062
 		if sqlError.Number == uniqueIndexErrNo {
-			return ErrUserDuplicateEmail
+			return ErrUserDuplicate
 		}
 	}
 	return err
@@ -53,10 +54,16 @@ func (ud *UserDAO) UpdateById(ctx context.Context, user User) error {
 	return ud.db.WithContext(ctx).Model(user).Where("id = ?", user.Id).Updates(user).Error
 }
 
+func (ud *UserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
+	var user User
+	err := ud.db.WithContext(ctx).Where("phone = ?", phone).First(&user).Error
+	return user, err
+}
+
 type User struct {
-	Id       int64  `gorm:"primaryKey, autoIncrement"`
-	Email    string `gorm:"type:varchar(100);uniqueIndex"`
-	Password string `gorm:"type:varchar(100)"`
+	Id       int64          `gorm:"primaryKey, autoIncrement"`
+	Email    sql.NullString `gorm:"type:varchar(100);uniqueIndex"`
+	Password string         `gorm:"type:varchar(100)"`
 
 	// 创建时间 毫秒级
 	Ctime int64
@@ -67,4 +74,6 @@ type User struct {
 	NickName     string `gorm:"type:varchar(100)"`
 	Birthday     int64
 	Introduction string `gorm:"type:varchar(100)"`
+
+	Phone sql.NullString `gorm:"type:varchar(100);uniqueIndex"`
 }

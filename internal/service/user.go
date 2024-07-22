@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrUserDuplicateEmail    = repository.ErrUserDuplicateEmail
+	ErrUserDuplicateEmail    = repository.ErrUserDuplicate
 	ErrInvalidUserOrPassword = errors.New("invalid password or email")
 )
 
@@ -53,4 +53,20 @@ func (svc *UserService) Edit(ctx *gin.Context, info domain.User) error {
 
 func (svc *UserService) FindById(ctx context.Context, id int64) (domain.User, error) {
 	return svc.repo.FindById(ctx, id)
+}
+
+func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+	user, err := svc.repo.FindByPhone(ctx, phone)
+	if err != repository.ErrUserNotFound {
+		return user, err
+	}
+	u := domain.User{
+		Phone: phone,
+	}
+
+	err = svc.repo.Create(ctx, u)
+	if err != nil || err == repository.ErrUserDuplicate {
+		return domain.User{}, err
+	}
+	return svc.repo.FindByPhone(ctx, phone)
 }

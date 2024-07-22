@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"github.com/gin-gonic/gin"
 	"time"
 	"we_book/internal/domain"
@@ -10,8 +11,8 @@ import (
 )
 
 var (
-	ErrUserDuplicateEmail = dao.ErrUserDuplicateEmail
-	ErrUserNotFound       = dao.ErrUserNotFound
+	ErrUserDuplicate = dao.ErrUserDuplicate
+	ErrUserNotFound  = dao.ErrUserNotFound
 )
 
 type UserRepository struct {
@@ -27,10 +28,7 @@ func NewUserRepository(dao *dao.UserDAO, c *cache.UserCache) *UserRepository {
 }
 
 func (ur *UserRepository) Create(ctx context.Context, u domain.User) error {
-	return ur.dao.Insert(ctx, dao.User{
-		Email:    u.Email,
-		Password: u.Password,
-	})
+	return ur.dao.Insert(ctx, ur.toDaoUser(u))
 }
 
 func (ur *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
@@ -38,18 +36,14 @@ func (ur *UserRepository) FindByEmail(ctx context.Context, email string) (domain
 	if err != nil {
 		return domain.User{}, err
 	}
-	return domain.User{
-		Id:       u.Id,
-		Email:    u.Email,
-		Password: u.Password,
-	}, nil
+	return ur.toDomainUser(u), nil
 }
 
 // 因为 dao 层的 user 与 domain 层的 user 字段名不一致，所以需要转换
 func (ur *UserRepository) toDomainUser(u dao.User) domain.User {
 	return domain.User{
 		Id:           u.Id,
-		Email:        u.Email,
+		Email:        u.Email.String,
 		Password:     u.Password,
 		NickName:     u.NickName,
 		Birthday:     time.UnixMilli(u.Birthday),
@@ -59,12 +53,17 @@ func (ur *UserRepository) toDomainUser(u dao.User) domain.User {
 
 func (ur *UserRepository) toDaoUser(u domain.User) dao.User {
 	return dao.User{
-		Id:           u.Id,
-		Email:        u.Email,
+		Id: u.Id,
+		Email: sql.NullString{
+			String: u.Email,
+			Valid:  u.Email != ""},
 		Password:     u.Password,
 		NickName:     u.NickName,
 		Birthday:     u.Birthday.UnixMilli(),
 		Introduction: u.Introduction,
+		Phone: sql.NullString{
+			String: u.Phone,
+			Valid:  u.Phone != ""},
 	}
 }
 
@@ -85,6 +84,14 @@ func (ur *UserRepository) FindById(ctx context.Context, id int64) (domain.User, 
 	_ = ur.cache.Set(ctx, u)
 	// 忽略错误，可能是 redis 服务挂了
 	return u, nil
+}
+
+func (ur *UserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+	user, err := ur.dao.FindByPhone(ctx, phone)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return ur.toDomainUser(user), nil
 }
 
 func (ur *UserRepository) Edit(ctx *gin.Context, info domain.User) error {

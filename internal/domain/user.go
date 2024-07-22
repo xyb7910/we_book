@@ -1,6 +1,8 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 // User 领域对象，可以理解为 DDD 中的 entity
 type User struct {
@@ -12,4 +14,6 @@ type User struct {
 	NickName     string
 	Birthday     time.Time
 	Introduction string
+
+	Phone string
 }

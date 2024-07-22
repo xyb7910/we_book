@@ -2,7 +2,7 @@
 --- Created by ypb.
 --- DateTime: 2024/7/21 21:14
 ---
-local key = KEY[1]
+local key = KEYS[1]
 -- 用户输入的 code
 local expectedCode = ARGV[1]
 local code = redis.call("get", key)
