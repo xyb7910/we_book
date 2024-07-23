@@ -5,19 +5,22 @@ import (
 	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	sms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111"
+	"we_book/internal/pkg/ratelimit"
 )
 
 type Service struct {
 	appId    *string
 	signName *string
 	client   *sms.Client
+	limiter  ratelimit.Limiter
 }
 
-func NewService(client *sms.Client, appId, signName *string) *Service {
+func NewService(client *sms.Client, appId, signName *string, limiter ratelimit.Limiter) *Service {
 	return &Service{
 		appId:    appId,
 		signName: signName,
 		client:   client,
+		limiter:  limiter,
 	}
 }
 
