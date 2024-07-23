@@ -3,6 +3,7 @@ package tencent
 import (
 	"context"
 	"fmt"
+	"github.com/ecodeclub/ekit"
 	"github.com/ecodeclub/ekit/slice"
 	sms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111"
 	"we_book/internal/pkg/ratelimit"
@@ -15,10 +16,10 @@ type Service struct {
 	limiter  ratelimit.Limiter
 }
 
-func NewService(client *sms.Client, appId, signName *string, limiter ratelimit.Limiter) *Service {
+func NewService(client *sms.Client, appId, signName string, limiter ratelimit.Limiter) *Service {
 	return &Service{
-		appId:    appId,
-		signName: signName,
+		appId:    ekit.ToPtr[string](appId),
+		signName: ekit.ToPtr[string](signName),
 		client:   client,
 		limiter:  limiter,
 	}
@@ -30,11 +31,11 @@ func (s *Service) toStringPtrSlice(src []string) []*string {
 	})
 }
 
-func (s *Service) Send(ctx context.Context, tplId string, args []string, numbers []string) error {
+func (s *Service) Send(ctx context.Context, biz string, args []string, numbers []string) error {
 	req := sms.NewSendSmsRequest()
 	req.SenderId = s.appId
 	req.SignName = s.signName
-	req.TemplateId = &tplId
+	req.TemplateId = ekit.ToPtr[string](biz)
 	req.PhoneNumberSet = s.toStringPtrSlice(numbers)
 	req.TemplateParamSet = s.toStringPtrSlice(args)
 	resp, err := s.client.SendSms(req)
