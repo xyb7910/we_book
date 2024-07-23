@@ -15,23 +15,31 @@ var (
 	ErrUserNotFound  = dao.ErrUserNotFound
 )
 
-type UserRepository struct {
-	dao   *dao.UserDAO
-	cache *cache.UserCache
+type UserRepository interface {
+	Create(ctx context.Context, u domain.User) error
+	FindByEmail(ctx context.Context, email string) (domain.User, error)
+	FindById(ctx context.Context, id int64) (domain.User, error)
+	FindByPhone(ctx context.Context, phone string) (domain.User, error)
+	Edit(ctx *gin.Context, info domain.User) error
 }
 
-func NewUserRepository(dao *dao.UserDAO, c *cache.UserCache) *UserRepository {
-	return &UserRepository{
+type CacheUserRepository struct {
+	dao   dao.UserDAO
+	cache cache.UserCache
+}
+
+func NewUserRepository(dao dao.UserDAO, c cache.UserCache) UserRepository {
+	return &CacheUserRepository{
 		dao:   dao,
 		cache: c,
 	}
 }
 
-func (ur *UserRepository) Create(ctx context.Context, u domain.User) error {
+func (ur *CacheUserRepository) Create(ctx context.Context, u domain.User) error {
 	return ur.dao.Insert(ctx, ur.toDaoUser(u))
 }
 
-func (ur *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
+func (ur *CacheUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	u, err := ur.dao.FindByEmail(ctx, email)
 	if err != nil {
 		return domain.User{}, err
@@ -40,7 +48,7 @@ func (ur *UserRepository) FindByEmail(ctx context.Context, email string) (domain
 }
 
 // 因为 dao 层的 user 与 domain 层的 user 字段名不一致，所以需要转换
-func (ur *UserRepository) toDomainUser(u dao.User) domain.User {
+func (ur *CacheUserRepository) toDomainUser(u dao.User) domain.User {
 	return domain.User{
 		Id:           u.Id,
 		Email:        u.Email.String,
@@ -51,7 +59,7 @@ func (ur *UserRepository) toDomainUser(u dao.User) domain.User {
 	}
 }
 
-func (ur *UserRepository) toDaoUser(u domain.User) dao.User {
+func (ur *CacheUserRepository) toDaoUser(u domain.User) dao.User {
 	return dao.User{
 		Id: u.Id,
 		Email: sql.NullString{
@@ -67,7 +75,7 @@ func (ur *UserRepository) toDaoUser(u domain.User) dao.User {
 	}
 }
 
-func (ur *UserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+func (ur *CacheUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
 	// 优先从缓存中获取
 	user, err := ur.cache.Get(ctx, id)
 	// 如果缓存中有， 直接返回
@@ -86,7 +94,7 @@ func (ur *UserRepository) FindById(ctx context.Context, id int64) (domain.User, 
 	return u, nil
 }
 
-func (ur *UserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+func (ur *CacheUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
 	user, err := ur.dao.FindByPhone(ctx, phone)
 	if err != nil {
 		return domain.User{}, err
@@ -94,6 +102,6 @@ func (ur *UserRepository) FindByPhone(ctx context.Context, phone string) (domain
 	return ur.toDomainUser(user), nil
 }
 
-func (ur *UserRepository) Edit(ctx *gin.Context, info domain.User) error {
+func (ur *CacheUserRepository) Edit(ctx *gin.Context, info domain.User) error {
 	return ur.dao.UpdateById(ctx, ur.toDaoUser(info))
 }

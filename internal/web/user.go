@@ -19,12 +19,12 @@ var biz = "login"
 type UserHandler struct {
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
-	svc         *service.UserService
-	codeSvc     *service.CodeService
+	svc         service.UserService
+	codeSvc     service.CodeService
 }
 
 // NewUserHandler 一定要在main.go中调用这个函数，否则会出现路由注册失败的问题
-func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`

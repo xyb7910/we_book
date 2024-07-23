@@ -10,21 +10,26 @@ var (
 	ErrCodeVerifyError = cache.ErrCodeVerifyError
 )
 
-type CodeRepository struct {
-	cache *cache.CodeCache
+type CodeRepository interface {
+	Store(ctx context.Context, biz string, phone string, code string) error
+	Verify(ctx context.Context, biz, phone, inputCode string) (bool, error)
 }
 
-func NewCodeRepository(c *cache.CodeCache) *CodeRepository {
-	return &CodeRepository{
+type CacheCodeRepository struct {
+	cache cache.CodeCache
+}
+
+func NewCodeRepository(c cache.CodeCache) CodeRepository {
+	return &CacheCodeRepository{
 		cache: c,
 	}
 }
 
-func (cr *CodeRepository) Store(ctx context.Context, biz string,
+func (cr *CacheCodeRepository) Store(ctx context.Context, biz string,
 	phone string, code string) error {
 	return cr.cache.Set(ctx, biz, phone, code)
 }
 
-func (cr *CodeRepository) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
+func (cr *CacheCodeRepository) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
 	return cr.cache.Verify(ctx, biz, phone, inputCode)
 }

@@ -11,23 +11,28 @@ import (
 
 var ErrKeyNotExists = redis.Nil
 
-type UserCache struct {
+type UserCache interface {
+	Get(ctx context.Context, id int64) (domain.User, error)
+	Set(ctx context.Context, user domain.User) error
+}
+
+type RedisUserCache struct {
 	client     redis.Cmdable
 	expiration time.Duration
 }
 
-func NewUserCache(client redis.Cmdable) *UserCache {
-	return &UserCache{
+func NewUserCache(client redis.Cmdable) UserCache {
+	return &RedisUserCache{
 		client:     client,
 		expiration: 10 * time.Minute,
 	}
 }
 
-func (uc *UserCache) key(id int64) string {
+func (uc *RedisUserCache) key(id int64) string {
 	return fmt.Sprintf("user:info:%d", id)
 }
 
-func (uc *UserCache) Get(ctx context.Context, id int64) (domain.User, error) {
+func (uc *RedisUserCache) Get(ctx context.Context, id int64) (domain.User, error) {
 	key := uc.key(id)
 	// 如果缓存中有，直接返回
 	val, err := uc.client.Get(ctx, key).Bytes()
@@ -39,7 +44,7 @@ func (uc *UserCache) Get(ctx context.Context, id int64) (domain.User, error) {
 	return user, err
 }
 
-func (uc *UserCache) Set(ctx context.Context, user domain.User) error {
+func (uc *RedisUserCache) Set(ctx context.Context, user domain.User) error {
 	val, err := json.Marshal(user)
 	if err != nil {
 		return err
