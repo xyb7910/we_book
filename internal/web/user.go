@@ -39,8 +39,8 @@ func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserH
 	}
 }
 
-// RegisterRoute 实现路由注册
-func (u *UserHandler) RegisterRoute(server *gin.Engine) {
+// RegisterRoutes 实现路由注册
+func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	// 首先进行路由分组
 	user := server.Group("/users")
 
