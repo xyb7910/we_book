@@ -8,15 +8,15 @@ import (
 	"github.com/redis/go-redis/v9"
 	"strings"
 	"time"
-	"we_book/internal/pkg/ginx/middlewares/ratelimit"
 	"we_book/internal/web"
 	"we_book/internal/web/middleware"
 )
 
-func InitWebServer(mdls []gin.HandlerFunc, userHdl *web.UserHandler) *gin.Engine {
+func InitWebServer(mdls []gin.HandlerFunc, userHdl *web.UserHandler, handler *web.OAuth2WeChatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRoutes(server)
+	handler.RegisterRoutes(server)
 	return server
 }
 
@@ -29,8 +29,10 @@ func InitMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/login_sms/code/send").
 			IgnorePaths("/users/login_sms").
+			IgnorePaths("/oauth2/wechat/authurl").
+			IgnorePaths("/oauth2/wechat/callback").
 			Build(),
-		ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
+		//ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
 		sessions.Sessions("my_session", store),
 	}
 }

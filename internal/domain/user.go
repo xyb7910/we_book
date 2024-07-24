@@ -14,6 +14,6 @@ type User struct {
 	NickName     string
 	Birthday     time.Time
 	Introduction string
-
-	Phone string
+	WechatInfo   WechatInfo
+	Phone        string
 }

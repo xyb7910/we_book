@@ -21,6 +21,7 @@ type UserRepository interface {
 	FindById(ctx context.Context, id int64) (domain.User, error)
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
 	Edit(ctx *gin.Context, info domain.User) error
+	FindByWechatOpenId(ctx context.Context, OpenId string) (domain.User, error)
 }
 
 type CacheUserRepository struct {
@@ -47,6 +48,14 @@ func (ur *CacheUserRepository) FindByEmail(ctx context.Context, email string) (d
 	return ur.toDomainUser(u), nil
 }
 
+func (ur *CacheUserRepository) FindByWechatOpenId(ctx context.Context, OpenId string) (domain.User, error) {
+	u, err := ur.dao.FindByWechatOpenId(ctx, OpenId)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return ur.toDomainUser(u), nil
+}
+
 // 因为 dao 层的 user 与 domain 层的 user 字段名不一致，所以需要转换
 func (ur *CacheUserRepository) toDomainUser(u dao.User) domain.User {
 	return domain.User{
@@ -56,6 +65,10 @@ func (ur *CacheUserRepository) toDomainUser(u dao.User) domain.User {
 		NickName:     u.NickName,
 		Birthday:     time.UnixMilli(u.Birthday),
 		Introduction: u.Introduction,
+		WechatInfo: domain.WechatInfo{
+			OpenId:  u.WeChatOpenId.String,
+			UnionId: u.WeChatUnionId.String,
+		},
 	}
 }
 
@@ -72,6 +85,14 @@ func (ur *CacheUserRepository) toDaoUser(u domain.User) dao.User {
 		Phone: sql.NullString{
 			String: u.Phone,
 			Valid:  u.Phone != ""},
+		WeChatOpenId: sql.NullString{
+			String: u.WechatInfo.OpenId,
+			Valid:  u.WechatInfo.OpenId != "",
+		},
+		WeChatUnionId: sql.NullString{
+			String: u.WechatInfo.UnionId,
+			Valid:  u.WechatInfo.UnionId != "",
+		},
 	}
 }
 

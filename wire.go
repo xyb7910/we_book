@@ -1,8 +1,11 @@
+//go:build wireinject
+
 package main
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	"we_book/internal/repository"
 	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
 	"we_book/internal/service"
@@ -22,13 +25,18 @@ func InitWebServer() *gin.Engine {
 		cache.NewUserCache,
 		cache.NewRedisCodeCache,
 
+		repository.NewUserRepository,
+		repository.NewCodeRepository,
+
 		service.NewUserService,
 		service.NewCodeService,
 
+		web.NewUserHandler,
+		web.NewOAuth2WeChatHandler,
+
 		// 基于内存实现存储
 		ioc.InitSMSService,
-		web.NewUserHandler,
-
+		ioc.InitWechatService,
 		ioc.InitWebServer,
 		ioc.InitMiddlewares,
 	)
