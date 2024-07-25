@@ -10,11 +10,11 @@ import (
 	"we_book/internal/domain"
 )
 
-var redirectUrl = url.PathEscape("https://meoying.com/oauth2/wechat/callback")
+var redirectUrl = url.PathEscape("https://test.com/oauth2/wechat/callback")
 
 type Service interface {
 	AuthURL(ctx context.Context) (string, error)
-	VerifyCode(ctx context.Context, code string, state string) (domain.WechatInfo, error)
+	VerifyCode(ctx context.Context, code string) (domain.WechatInfo, error)
 }
 
 type service struct {
@@ -50,7 +50,7 @@ func (ws *service) AuthURL(ctx context.Context) (string, error) {
 	return fmt.Sprintf(urlPattern, ws.appId, redirectUrl, state), nil
 }
 
-func (ws *service) VerifyCode(ctx context.Context, code string, state string) (domain.WechatInfo, error) {
+func (ws *service) VerifyCode(ctx context.Context, code string) (domain.WechatInfo, error) {
 	const targetPattern = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code"
 	target := fmt.Sprintf(targetPattern, ws.appId, ws.appSecret, code)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)

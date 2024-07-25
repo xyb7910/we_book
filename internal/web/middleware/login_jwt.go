@@ -7,15 +7,18 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"we_book/internal/web"
+	ijwt "we_book/internal/web/jwt"
 )
 
 type LoginJWTMiddlewareBuilder struct {
 	paths []string
+	ijwt.Handler
 }
 
-func NewLoginJWTMiddlewareBuilder() *LoginJWTMiddlewareBuilder {
-	return &LoginJWTMiddlewareBuilder{}
+func NewLoginJWTMiddlewareBuilder(jwtHdl ijwt.Handler) *LoginJWTMiddlewareBuilder {
+	return &LoginJWTMiddlewareBuilder{
+		Handler: jwtHdl,
+	}
 }
 
 func (l *LoginJWTMiddlewareBuilder) IgnorePaths(path string) *LoginJWTMiddlewareBuilder {
@@ -46,7 +49,7 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 		tokenStr := segs[1]
-		claims := &web.UserClaims{}
+		claims := &ijwt.UserClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), nil
 		})

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"we_book/internal/web"
+	ijwt "we_book/internal/web/jwt"
 	"we_book/internal/web/middleware"
 )
 
@@ -20,11 +21,11 @@ func InitWebServer(mdls []gin.HandlerFunc, userHdl *web.UserHandler, handler *we
 	return server
 }
 
-func InitMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
+func InitMiddlewares(redisClient redis.Cmdable, jwtHdl ijwt.Handler) []gin.HandlerFunc {
 	store := memstore.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), []byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
 	return []gin.HandlerFunc{
 		corsMiddleware(),
-		middleware.NewLoginJWTMiddlewareBuilder().
+		middleware.NewLoginJWTMiddlewareBuilder(jwtHdl).
 			IgnorePaths("/users/signup").
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/login_sms/code/send").
