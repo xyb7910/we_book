@@ -4,10 +4,13 @@ import (
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 	"net/http"
 	"time"
 	"we_book/internal/domain"
 	"we_book/internal/service"
+	ijwt "we_book/internal/web/jwt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,11 +23,14 @@ type UserHandler struct {
 	passwordExp *regexp.Regexp
 	svc         service.UserService
 	codeSvc     service.CodeService
-	jwtHandler
+	ijwt.Handler
+	cmd redis.Cmdable
 }
 
 // NewUserHandler 一定要在main.go中调用这个函数，否则会出现路由注册失败的问题
-func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
+func NewUserHandler(svc service.UserService,
+	codeSvc service.CodeService,
+	jwtHdl ijwt.Handler) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
@@ -36,6 +42,7 @@ func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserH
 		passwordExp: passwordExp,
 		svc:         svc,
 		codeSvc:     codeSvc,
+		Handler:     jwtHdl,
 	}
 }
 
@@ -49,9 +56,11 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	user.POST("/login", u.Login)
 	user.GET("/profile", u.ProfileJWT)
 	user.GET("/logout", u.Logout)
+	user.GET("/logout_jwt", u.LogoutJWT)
 	user.GET("/edit", u.Edit)
 	user.POST("/login_sms/code/send", u.SendLoginSMSCode)
 	user.POST("/login_sms", u.VerifyLoginSMSCode)
+	user.POST("/refresh_token", u.RefreshToken)
 }
 
 // SignUp 实现 user 相关的 signup 接口
@@ -152,7 +161,7 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		return
 	}
 	// 使用 JWT 进行登录 并将 用户的 id 存储在 token 中
-	if err := u.setJWTToken(ctx, user.Id); err != nil {
+	if err := u.SetLoginToken(ctx, user.Id); err != nil {
 		return
 	}
 	fmt.Println(user)
@@ -202,7 +211,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 // ProfileJWT 实现 user 相关的 profile 接口
 func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 	c, _ := ctx.Get("claims")
-	claims, ok := c.(*UserClaims)
+	claims, ok := c.(*ijwt.UserClaims)
 	if !ok {
 		ctx.String(http.StatusOK, "invalid token")
 		return
@@ -220,7 +229,7 @@ func (u *UserHandler) Profile(ctx *gin.Context) {
 		Introduction string `json:"introduction"`
 	}
 	// 通过 jwt 荷载的信息来获取用户的 id
-	uc, ok := ctx.MustGet("claims").(*UserClaims)
+	uc, ok := ctx.MustGet("claims").(*ijwt.UserClaims)
 	if !ok {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -264,7 +273,7 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 		return
 	}
 	// 考虑 基于 jwt 携带参数来实现
-	uc, ok := ctx.MustGet("claims").(*UserClaims)
+	uc, ok := ctx.MustGet("claims").(*ijwt.UserClaims)
 	if !ok {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -341,7 +350,7 @@ func (u *UserHandler) VerifyLoginSMSCode(ctx *gin.Context) {
 		})
 	}
 	//fmt.Println(user.Id)
-	if err := u.setJWTToken(ctx, user.Id); err != nil {
+	if err := u.SetLoginToken(ctx, user.Id); err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "backend error",
@@ -353,4 +362,46 @@ func (u *UserHandler) VerifyLoginSMSCode(ctx *gin.Context) {
 		Msg:  "login success",
 	})
 
+}
+
+func (u *UserHandler) RefreshToken(ctx *gin.Context) {
+	refreshToken := u.ExtractToken(ctx)
+	var rt ijwt.RefreshClaims
+	token, err := jwt.ParseWithClaims(refreshToken, &rt, func(token *jwt.Token) (interface{}, error) {
+		return ijwt.AtKey, nil
+	})
+	if err != nil || !token.Valid {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	err = u.CheckSession(ctx, rt.Ssid)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	// 生成新的 token
+	err = u.SetJWTToken(ctx, rt.Uid, rt.Ssid)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "refresh success",
+	})
+}
+
+func (u *UserHandler) LogoutJWT(ctx *gin.Context) {
+	err := u.ClearToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "logout failed",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "logout success",
+	})
 }

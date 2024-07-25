@@ -13,7 +13,9 @@ import (
 	"we_book/internal/web/middleware"
 )
 
-func InitWebServer(mdls []gin.HandlerFunc, userHdl *web.UserHandler, handler *web.OAuth2WeChatHandler) *gin.Engine {
+func InitWebServer(mdls []gin.HandlerFunc,
+	userHdl *web.UserHandler,
+	handler *web.OAuth2WeChatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRoutes(server)
@@ -32,6 +34,7 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHdl ijwt.Handler) []gin.Handl
 			IgnorePaths("/users/login_sms").
 			IgnorePaths("/oauth2/wechat/authurl").
 			IgnorePaths("/oauth2/wechat/callback").
+			IgnorePaths("/users/refresh_token").
 			Build(),
 		//ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
 		sessions.Sessions("my_session", store),
@@ -42,7 +45,7 @@ func corsMiddleware() gin.HandlerFunc {
 	return cors.New(cors.Config{
 		AllowCredentials: true,
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"x-jwt-token"},
+		ExposeHeaders:    []string{"x-jwt-token", "x-refresh-token"},
 		AllowOriginFunc: func(origin string) bool {
 			if strings.HasPrefix(origin, "http://localhost") {
 				return true

@@ -3,10 +3,7 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"log"
 	"net/http"
-	"strings"
-	"time"
 	ijwt "we_book/internal/web/jwt"
 )
 
@@ -42,13 +39,7 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		segs := strings.Split(tokenHeader, " ")
-		if len(segs) != 2 {
-			// 没有登录
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		tokenStr := segs[1]
+		tokenStr := l.ExtractToken(ctx)
 		claims := &ijwt.UserClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), nil
@@ -67,17 +58,23 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
-		// 实现刷新 token
-		now := time.Now()
-		// 每十秒刷新一次
-		if claims.ExpiresAt.Sub(now) < time.Second*10 {
-			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
-			tokenStr, err = token.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
-			if err != nil {
-				log.Println("token 刷新失败")
-			}
-			ctx.Header("x-jwt-token", tokenStr)
+		err = l.CheckSession(ctx, claims.Ssid)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
+
+		// 实现刷新 token
+		//now := time.Now()
+		//// 每十秒刷新一次
+		//if claims.ExpiresAt.Sub(now) < time.Second*10 {
+		//	claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
+		//	tokenStr, err = token.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
+		//	if err != nil {
+		//		log.Println("token 刷新失败")
+		//	}
+		//	ctx.Header("x-jwt-token", tokenStr)
+		//}
 		ctx.Set("claims", claims)
 	}
 }

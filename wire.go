@@ -10,6 +10,7 @@ import (
 	"we_book/internal/repository/dao"
 	"we_book/internal/service"
 	"we_book/internal/web"
+	ijwt "we_book/internal/web/jwt"
 	"we_book/ioc"
 )
 
@@ -36,9 +37,13 @@ func InitWebServer() *gin.Engine {
 
 		// 基于内存实现存储
 		ioc.InitSMSService,
-		ioc.InitWechatService,
-		ioc.InitWebServer,
 		ioc.InitMiddlewares,
+
+		ioc.InitWebServer,
+
+		ioc.InitWechatService,
+		ioc.NewWechatHandlerConfig,
+		ijwt.NewRedisJWTHandler,
 	)
 	return new(gin.Engine)
 }
