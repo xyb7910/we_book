@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -84,8 +85,18 @@ func (rj *RedisJWTHandler) ExtractToken(ctx *gin.Context) string {
 }
 
 func (rj *RedisJWTHandler) CheckSession(ctx *gin.Context, ssid string) error {
-	_, err := rj.cmd.Exists(ctx, fmt.Sprintf("users:ssid:%s", ssid)).Result()
-	return err
+	val, err := rj.cmd.Exists(ctx, fmt.Sprintf("users:ssid:%s", ssid)).Result()
+	switch err {
+	case redis.Nil:
+		return nil
+	case nil:
+		if val == 0 {
+			return nil
+		}
+		return errors.New("session expired")
+	default:
+		return err
+	}
 }
 
 func (rj *RedisJWTHandler) ClearToken(ctx *gin.Context) error {

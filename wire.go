@@ -44,6 +44,8 @@ func InitWebServer() *gin.Engine {
 		ioc.InitWechatService,
 		ioc.NewWechatHandlerConfig,
 		ijwt.NewRedisJWTHandler,
+
+		ioc.InitLogger,
 	)
 	return new(gin.Engine)
 }
