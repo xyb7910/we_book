@@ -18,10 +18,12 @@ import (
 
 func InitWebServer(mdls []gin.HandlerFunc,
 	userHdl *web.UserHandler,
+	articlesHdl *web.ArticleHandler,
 	handler *web.OAuth2WeChatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRoutes(server)
+	articlesHdl.RegisterRouters(server)
 	handler.RegisterRoutes(server)
 	return server
 }
