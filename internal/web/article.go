@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"we_book/internal/domain"
 	"we_book/internal/pkg/logger"
 	"we_book/internal/service"
@@ -24,14 +25,11 @@ func (at *ArticleHandler) RegisterRouters(server *gin.Engine) {
 	article := server.Group("/articles")
 
 	article.POST("/edit", at.Edit)
+	article.POST("/publish", at.Publish)
 }
 
 func (at *ArticleHandler) Edit(ctx *gin.Context) {
-	type Req struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}
-	var req Req
+	var req ArticleReq
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
@@ -47,13 +45,7 @@ func (at *ArticleHandler) Edit(ctx *gin.Context) {
 		return
 	}
 	// 校验部分
-	id, err := at.svc.Edit(ctx, domain.Article{
-		Title:   req.Title,
-		Content: req.Content,
-		Author: domain.Author{
-			Id: claims.Uid,
-		},
-	})
+	id, err := at.svc.Edit(ctx, req.toDomain(claims.Uid))
 	if err != nil {
 		ctx.JSON(200, Result{
 			Code: 5,
@@ -66,4 +58,50 @@ func (at *ArticleHandler) Edit(ctx *gin.Context) {
 		Msg:  "success",
 		Data: id,
 	})
+}
+
+func (at *ArticleHandler) Publish(ctx *gin.Context) {
+	var req ArticleReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	c := ctx.MustGet("claims")
+	claims, ok := c.(*ijwt.UserClaims)
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "system error",
+		})
+		at.l.Error("not find user session")
+		return
+	}
+	id, err := at.svc.Save(ctx, req.toDomain(claims.Uid))
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "save article error",
+		})
+		at.l.Error("save article error")
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "success",
+		Data: id,
+	})
+}
+
+type ArticleReq struct {
+	Id      int64  `json:"id"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+func (req ArticleReq) toDomain(uid int64) domain.Article {
+	return domain.Article{
+		Title:   req.Title,
+		Content: req.Content,
+		Author: domain.Author{
+			Id: uid,
+		},
+	}
 }

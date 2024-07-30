@@ -29,6 +29,7 @@ type ArticleSuite struct {
 }
 
 type Article struct {
+	Id      int64  `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
@@ -79,7 +80,7 @@ func (as *ArticleSuite) TestEdit() {
 		wantedRes Result[int64]
 	}{
 		{
-			name: "test edit",
+			name: "新建文章",
 			before: func(t *testing.T) {
 
 			},
@@ -110,6 +111,91 @@ func (as *ArticleSuite) TestEdit() {
 				Msg:  "success",
 			},
 		},
+		{
+			name: "修改文章,并保存",
+			before: func(t *testing.T) {
+				// 首先需要插入一条数据
+				err := as.db.Create(&dao.Article{
+					Id:       2,
+					Title:    "This is a test title",
+					Content:  "This is a test content",
+					AuthorId: 1,
+					Ctime:    145,
+					Utime:    167,
+				}).Error
+				assert.NoError(t, err)
+			},
+
+			after: func(t *testing.T) {
+				// 从数据库中直接查
+				var art dao.Article
+				err := as.db.Where("id = ?", 2).First(&art).Error
+				assert.NoError(t, err)
+				// 检查创建时间
+				assert.Equal(t, int64(145), art.Ctime)
+				assert.Equal(t, dao.Article{
+					Id:       2,
+					Title:    "This is a new test title",
+					Content:  "This is a new test content",
+					Ctime:    145,
+					Utime:    167,
+					AuthorId: 1,
+				}, art)
+				// 检查更新时间是否大于创建时间
+				assert.True(t, art.Utime > 167)
+				art.Utime = 0
+			},
+
+			art: Article{
+				Id:      2,
+				Title:   "This is a new test title",
+				Content: "This is a new test content",
+			},
+			wantedErrCode: 200,
+			wantedRes: Result[int64]{
+				Date: 1,
+				Msg:  "success",
+			},
+		},
+		{
+			name: "修改别人的帖子",
+			before: func(t *testing.T) {
+				// 提前准备数据
+				err := as.db.Create(dao.Article{
+					Id:       3,
+					Title:    "我的标题",
+					Content:  "我的内容",
+					AuthorId: 789,
+					Ctime:    123,
+					Utime:    234,
+				}).Error
+				assert.NoError(t, err)
+			},
+			after: func(t *testing.T) {
+				// 验证数据库
+				var art dao.Article
+				err := as.db.Where("id=?", 3).First(&art).Error
+				assert.NoError(t, err)
+				assert.Equal(t, dao.Article{
+					Id:       3,
+					Title:    "我的标题",
+					Content:  "我的内容",
+					Ctime:    123,
+					Utime:    234,
+					AuthorId: 789,
+				}, art)
+			},
+			art: Article{
+				Id:      3,
+				Title:   "新的标题",
+				Content: "新的内容",
+			},
+			wantedErrCode: http.StatusOK,
+			wantedRes: Result[int64]{
+				Code: 5,
+				Msg:  "系统错误",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -122,7 +208,7 @@ func (as *ArticleSuite) TestEdit() {
 			require.NoError(t, err)
 			// 数据是 JSON 格式
 			req.Header.Set("Content-Type", "application/json")
-			// 这里你就可以继续使用 req
+			// 继续使用 req
 			resp := httptest.NewRecorder()
 			// 这就是 HTTP 请求进去 GIN 框架的入口。
 			// 当你这样调用的时候，GIN 就会处理这个请求

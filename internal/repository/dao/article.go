@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
@@ -12,6 +13,7 @@ type GORMArticleDAO struct {
 
 type ArticleDAO interface {
 	Insert(ctx context.Context, article Article) (int64, error)
+	UpdateById(ctx context.Context, article Article) error
 }
 
 func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
@@ -33,4 +35,24 @@ func (g GORMArticleDAO) Insert(ctx context.Context, article Article) (int64, err
 	article.Utime = now
 	err := g.db.WithContext(ctx).Create(&article).Error
 	return article.Id, err
+}
+
+func (g GORMArticleDAO) UpdateById(ctx context.Context, article Article) error {
+	now := time.Now().UnixMilli()
+	article.Utime = now
+
+	res := g.db.WithContext(ctx).Model(&article).
+		Where("id = ? and author_id = ?", article.Id, article.AuthorId).
+		Updates(map[string]any{
+			"title":   article.Title,
+			"content": article.Content,
+			"utime":   article.Utime,
+		})
+	if res != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return fmt.Errorf("update article failed")
+	}
+	return res.Error
 }
