@@ -75,11 +75,12 @@ func (at *ArticleHandler) Publish(ctx *gin.Context) {
 		at.l.Error("not find user session")
 		return
 	}
-	id, err := at.svc.Save(ctx, req.toDomain(claims.Uid))
+	println(claims.Uid)
+	id, err := at.svc.Publish(ctx, req.toDomain(claims.Uid))
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
-			Msg:  "save article error",
+			Msg:  "publish article error",
 		})
 		at.l.Error("save article error")
 	}

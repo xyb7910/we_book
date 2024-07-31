@@ -106,7 +106,7 @@ func TestUserHandler_SignUp(t *testing.T) {
 			// 创建一个 gin server
 			server := gin.Default()
 			// 不会使用到 code
-			h := NewUserHandler(tc.mock(ctrl), nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil)
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost,

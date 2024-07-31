@@ -15,6 +15,7 @@ require (
 	github.com/google/uuid v1.4.0
 	github.com/google/wire v0.6.0
 	github.com/lithammer/shortuuid/v4 v4.0.0
+	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.5.4
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0

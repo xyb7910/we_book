@@ -15,8 +15,6 @@ type articleService struct {
 type ArticleService interface {
 	Edit(ctx context.Context, article domain.Article) (int64, error)
 	Save(ctx context.Context, article domain.Article) (int64, error)
-	create(ctx context.Context, article domain.Article) (int64, error)
-	update(ctx context.Context, article domain.Article) error
 	Publish(ctx context.Context, article domain.Article) (int64, error)
 }
 
