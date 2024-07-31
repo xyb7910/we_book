@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"we_book/internal/repository"
+	"we_book/internal/repository/article"
 	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
 	"we_book/internal/service"
@@ -36,7 +37,7 @@ func InitWebServer() *gin.Engine {
 	codeService := service.NewCodeService(codeRepository, smsService)
 	userHandler := web.NewUserHandler(userService, codeService, handler)
 	articleDAO := dao.NewGORMArticleDAO(db)
-	articleRepository := repository.NewArticleRepository(articleDAO)
+	articleRepository := article.NewArticleRepository(articleDAO)
 	articleService := service.NewArticleService(articleRepository)
 	articleHandler := web.NewArticleHandler(articleService, v1)
 	wechatService := InitPhoneToWechatService(v1)
@@ -49,7 +50,7 @@ func InitWebServer() *gin.Engine {
 func InitArticleHandler() *web.ArticleHandler {
 	db := InitDB()
 	articleDAO := dao.NewGORMArticleDAO(db)
-	articleRepository := repository.NewArticleRepository(articleDAO)
+	articleRepository := article.NewArticleRepository(articleDAO)
 	articleService := service.NewArticleService(articleRepository)
 	v1 := InitLogger()
 	articleHandler := web.NewArticleHandler(articleService, v1)
@@ -64,4 +65,4 @@ var userSvcProviderSet = wire.NewSet(dao.NewUserDAO, cache.NewUserCache, reposit
 
 var codeSvcProviderSet = wire.NewSet(cache.NewRedisCodeCache, repository.NewCodeRepository, service.NewCodeService)
 
-var articleSvcProviderSet = wire.NewSet(dao.NewGORMArticleDAO, repository.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
+var articleSvcProviderSet = wire.NewSet(dao.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)

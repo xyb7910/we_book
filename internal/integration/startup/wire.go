@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"we_book/internal/repository"
+	"we_book/internal/repository/article"
 	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
 	"we_book/internal/service"
@@ -17,7 +18,7 @@ import (
 var thirdProviderSet = wire.NewSet(InitRedis, InitLogger, InitDB)
 var userSvcProviderSet = wire.NewSet(dao.NewUserDAO, cache.NewUserCache, repository.NewUserRepository, service.NewUserService, web.NewUserHandler)
 var codeSvcProviderSet = wire.NewSet(cache.NewRedisCodeCache, repository.NewCodeRepository, service.NewCodeService)
-var articleSvcProviderSet = wire.NewSet(dao.NewGORMArticleDAO, repository.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
+var articleSvcProviderSet = wire.NewSet(dao.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
 
 func InitWebServer() *gin.Engine {
 	wire.Build(

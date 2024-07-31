@@ -48,7 +48,7 @@ func (g GORMArticleDAO) UpdateById(ctx context.Context, article Article) error {
 			"content": article.Content,
 			"utime":   article.Utime,
 		})
-	if res != nil {
+	if res.Error != nil {
 		return res.Error
 	}
 	if res.RowsAffected == 0 {

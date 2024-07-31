@@ -1,4 +1,4 @@
-package repository
+package article
 
 import (
 	"context"
@@ -19,19 +19,20 @@ func NewArticleRepository(dao dao.ArticleDAO) ArticleRepository {
 	return &CacheArticleRepository{dao: dao}
 }
 
-func (c CacheArticleRepository) Create(ctx context.Context, article domain.Article) (int64, error) {
+func (c CacheArticleRepository) Create(ctx context.Context, art domain.Article) (int64, error) {
 	return c.dao.Insert(ctx, dao.Article{
-		Title:    article.Title,
-		Content:  article.Content,
-		AuthorId: article.Author.Id,
+		Id:       art.Id,
+		Title:    art.Title,
+		Content:  art.Content,
+		AuthorId: art.Author.Id,
 	})
 }
 
-func (c CacheArticleRepository) Update(ctx context.Context, article domain.Article) error {
+func (c CacheArticleRepository) Update(ctx context.Context, art domain.Article) error {
 	return c.dao.UpdateById(ctx, dao.Article{
-		Id:       article.Id,
-		Title:    article.Title,
-		Content:  article.Content,
-		AuthorId: article.Author.Id,
+		Id:       art.Id,
+		Title:    art.Title,
+		Content:  art.Content,
+		AuthorId: art.Author.Id,
 	})
 }
