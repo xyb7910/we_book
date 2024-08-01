@@ -13,6 +13,8 @@ type ArticleDAO interface {
 	UpdateById(ctx context.Context, article Article) error
 	Sync(ctx context.Context, article Article) (int64, error)
 	Upsert(ctx context.Context, article Article) error
+	SyncStatus(ctx context.Context, id int64, author int64, u uint8) error
+	Transaction(ctx context.Context, bizFunc func(txDAO ArticleDAO) error) error
 }
 
 type GORMArticleDAO struct {
@@ -28,8 +30,40 @@ type Article struct {
 	Title    string `gorm:"type:varchar(255)"`
 	Content  string `gorm:"type:text"`
 	AuthorId int64  `gorm:"index"`
+	Status   uint8
 	Ctime    int64
 	Utime    int64
+}
+
+func (g *GORMArticleDAO) Transaction(ctx context.Context, bizFunc func(txDAO ArticleDAO) error) error {
+	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txDAO := NewGORMArticleDAO(tx)
+		return bizFunc(txDAO)
+	})
+}
+
+func (g *GORMArticleDAO) SyncStatus(ctx context.Context, id int64, author int64, u uint8) error {
+	now := time.Now().UnixMilli()
+	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&Article{}).
+			Where("id = ? AND author_id = ?", id, author).
+			Updates(map[string]any{
+				"status": u,
+				"utime":  now,
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected != 1 {
+			return fmt.Errorf("update article status failed")
+		}
+		return tx.Model(&Article{}).
+			Where("id = ?", id).
+			Updates(map[string]any{
+				"status": u,
+				"utime":  now,
+			}).Error
+	})
 }
 
 func (g *GORMArticleDAO) Sync(ctx context.Context, article Article) (int64, error) {
@@ -59,6 +93,7 @@ func (g *GORMArticleDAO) Upsert(ctx context.Context, article Article) error {
 		DoUpdates: clause.Assignments(
 			map[string]interface{}{
 				"title":   article.Title,
+				"status":  article.Status,
 				"content": article.Content,
 				"utime":   article.Utime,
 			}),
@@ -82,6 +117,7 @@ func (g *GORMArticleDAO) UpdateById(ctx context.Context, article Article) error 
 		Updates(map[string]any{
 			"title":   article.Title,
 			"content": article.Content,
+			"status":  article.Status,
 			"utime":   article.Utime,
 		})
 	if res.Error != nil {

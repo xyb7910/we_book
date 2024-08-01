@@ -26,6 +26,7 @@ func (at *ArticleHandler) RegisterRouters(server *gin.Engine) {
 
 	article.POST("/edit", at.Edit)
 	article.POST("/publish", at.Publish)
+	article.POST("/withdraw", at.Withdraw)
 }
 
 func (at *ArticleHandler) Edit(ctx *gin.Context) {
@@ -78,7 +79,6 @@ func (at *ArticleHandler) Publish(ctx *gin.Context) {
 		at.l.Error("not find user session")
 		return
 	}
-	println(claims.Uid)
 	id, err := at.svc.Publish(ctx, req.toDomain(claims.Uid))
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
@@ -91,6 +91,43 @@ func (at *ArticleHandler) Publish(ctx *gin.Context) {
 		Code: 2,
 		Msg:  "success",
 		Data: id,
+	})
+}
+
+func (at *ArticleHandler) Withdraw(ctx *gin.Context) {
+	type Req struct {
+		Id int64
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	c := ctx.MustGet("claims")
+	claims, ok := c.(*ijwt.UserClaims)
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "system error",
+		})
+		at.l.Error("not find user session")
+		return
+	}
+	err := at.svc.Withdraw(ctx, domain.Article{
+		Id: req.Id,
+		Author: domain.Author{
+			Id: claims.Uid,
+		},
+	})
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "withdraw article error",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "success",
 	})
 }
 

@@ -20,6 +20,7 @@ type ArticleRepository interface {
 	Create(ctx context.Context, article domain.Article) (int64, error)
 	Update(ctx context.Context, article domain.Article) error
 	Sync(ctx context.Context, article domain.Article) (int64, error)
+	SyncStatus(ctx context.Context, id int64, author int64, status domain.ArticleStatus) error
 }
 
 func NewArticleRepository(dao article.ArticleDAO, author article.AuthorDao, reader article.ArticleDAO) ArticleRepository {
@@ -33,6 +34,10 @@ func (c CacheArticleRepository) toEntity(art domain.Article) article.Article {
 		Content:  art.Content,
 		AuthorId: art.Author.Id,
 	}
+}
+
+func (c CacheArticleRepository) SyncStatus(ctx context.Context, id int64, author int64, status domain.ArticleStatus) error {
+	return c.dao.SyncStatus(ctx, id, author, uint8(status))
 }
 
 // Sync 数据在同一个表中
@@ -93,6 +98,7 @@ func (c CacheArticleRepository) Create(ctx context.Context, art domain.Article) 
 		Title:    art.Title,
 		Content:  art.Content,
 		AuthorId: art.Author.Id,
+		Status:   uint8(art.Status),
 	})
 }
 
@@ -102,5 +108,6 @@ func (c CacheArticleRepository) Update(ctx context.Context, art domain.Article) 
 		Title:    art.Title,
 		Content:  art.Content,
 		AuthorId: art.Author.Id,
+		Status:   uint8(art.Status),
 	})
 }
