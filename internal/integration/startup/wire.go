@@ -9,6 +9,7 @@ import (
 	"we_book/internal/repository/article"
 	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
+	article2 "we_book/internal/repository/dao/article"
 	"we_book/internal/service"
 	"we_book/internal/web"
 	ijwt "we_book/internal/web/jwt"
@@ -18,7 +19,7 @@ import (
 var thirdProviderSet = wire.NewSet(InitRedis, InitLogger, InitDB)
 var userSvcProviderSet = wire.NewSet(dao.NewUserDAO, cache.NewUserCache, repository.NewUserRepository, service.NewUserService, web.NewUserHandler)
 var codeSvcProviderSet = wire.NewSet(cache.NewRedisCodeCache, repository.NewCodeRepository, service.NewCodeService)
-var articleSvcProviderSet = wire.NewSet(dao.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
+var articleSvcProviderSet = wire.NewSet(article2.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
 
 func InitWebServer() *gin.Engine {
 	wire.Build(

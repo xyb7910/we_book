@@ -63,7 +63,10 @@ func (at *ArticleHandler) Edit(ctx *gin.Context) {
 func (at *ArticleHandler) Publish(ctx *gin.Context) {
 	var req ArticleReq
 	if err := ctx.Bind(&req); err != nil {
-		return
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "Bind error",
+		})
 	}
 	c := ctx.MustGet("claims")
 	claims, ok := c.(*ijwt.UserClaims)

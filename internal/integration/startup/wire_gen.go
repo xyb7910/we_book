@@ -13,6 +13,7 @@ import (
 	"we_book/internal/repository/article"
 	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
+	article2 "we_book/internal/repository/dao/article"
 	"we_book/internal/service"
 	"we_book/internal/web"
 	"we_book/internal/web/jwt"
@@ -36,7 +37,7 @@ func InitWebServer() *gin.Engine {
 	smsService := InitSMSService()
 	codeService := service.NewCodeService(codeRepository, smsService)
 	userHandler := web.NewUserHandler(userService, codeService, handler)
-	articleDAO := dao.NewGORMArticleDAO(db)
+	articleDAO := article2.NewGORMArticleDAO(db)
 	articleRepository := article.NewArticleRepository(articleDAO)
 	articleService := service.NewArticleService(articleRepository)
 	articleHandler := web.NewArticleHandler(articleService, v1)
@@ -49,7 +50,7 @@ func InitWebServer() *gin.Engine {
 
 func InitArticleHandler() *web.ArticleHandler {
 	db := InitDB()
-	articleDAO := dao.NewGORMArticleDAO(db)
+	articleDAO := article2.NewGORMArticleDAO(db)
 	articleRepository := article.NewArticleRepository(articleDAO)
 	articleService := service.NewArticleService(articleRepository)
 	v1 := InitLogger()
@@ -65,4 +66,4 @@ var userSvcProviderSet = wire.NewSet(dao.NewUserDAO, cache.NewUserCache, reposit
 
 var codeSvcProviderSet = wire.NewSet(cache.NewRedisCodeCache, repository.NewCodeRepository, service.NewCodeService)
 
-var articleSvcProviderSet = wire.NewSet(dao.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
+var articleSvcProviderSet = wire.NewSet(article2.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
