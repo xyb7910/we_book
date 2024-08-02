@@ -23,8 +23,8 @@ type ArticleRepository interface {
 	SyncStatus(ctx context.Context, id int64, author int64, status domain.ArticleStatus) error
 }
 
-func NewArticleRepository(dao article.ArticleDAO, author article.AuthorDao, reader article.ArticleDAO) ArticleRepository {
-	return &CacheArticleRepository{dao: dao, authorDAO: author, readerDAO: reader}
+func NewArticleRepository(dao article.ArticleDAO) ArticleRepository {
+	return &CacheArticleRepository{dao: dao}
 }
 
 func (c CacheArticleRepository) toEntity(art domain.Article) article.Article {

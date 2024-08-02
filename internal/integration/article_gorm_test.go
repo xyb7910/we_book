@@ -28,12 +28,6 @@ type ArticleSuite struct {
 	db     *gorm.DB
 }
 
-type Article struct {
-	Id      int64  `json:"id"`
-	Title   string `json:"title"`
-	Content string `json:"content"`
-}
-
 type Result[T any] struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
@@ -50,7 +44,7 @@ func (as *ArticleSuite) SetupSuite() {
 		})
 	})
 	as.db = startup.InitDB()
-	artHdl := startup.InitArticleHandler()
+	artHdl := startup.InitArticleHandler(article.NewGORMArticleDAO(as.db))
 	artHdl.RegisterRouters(as.server)
 }
 

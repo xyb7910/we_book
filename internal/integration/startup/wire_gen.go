@@ -10,10 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"we_book/internal/repository"
-	"we_book/internal/repository/article"
+	article2 "we_book/internal/repository/article"
 	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
-	article2 "we_book/internal/repository/dao/article"
+	"we_book/internal/repository/dao/article"
 	"we_book/internal/service"
 	"we_book/internal/web"
 	"we_book/internal/web/jwt"
@@ -37,8 +37,8 @@ func InitWebServer() *gin.Engine {
 	smsService := InitSMSService()
 	codeService := service.NewCodeService(codeRepository, smsService)
 	userHandler := web.NewUserHandler(userService, codeService, handler)
-	articleDAO := article2.NewGORMArticleDAO(db)
-	articleRepository := article.NewArticleRepository(articleDAO)
+	articleDAO := article.NewGORMArticleDAO(db)
+	articleRepository := article2.NewArticleRepository(articleDAO)
 	articleService := service.NewArticleService(articleRepository)
 	articleHandler := web.NewArticleHandler(articleService, v1)
 	wechatService := InitPhoneToWechatService(v1)
@@ -48,10 +48,8 @@ func InitWebServer() *gin.Engine {
 	return engine
 }
 
-func InitArticleHandler() *web.ArticleHandler {
-	db := InitDB()
-	articleDAO := article2.NewGORMArticleDAO(db)
-	articleRepository := article.NewArticleRepository(articleDAO)
+func InitArticleHandler(dao2 article.ArticleDAO) *web.ArticleHandler {
+	articleRepository := article2.NewArticleRepository(dao2)
 	articleService := service.NewArticleService(articleRepository)
 	v1 := InitLogger()
 	articleHandler := web.NewArticleHandler(articleService, v1)
@@ -60,10 +58,10 @@ func InitArticleHandler() *web.ArticleHandler {
 
 // wire.go:
 
-var thirdProviderSet = wire.NewSet(InitRedis, InitLogger, InitDB)
+var thirdProviderSet = wire.NewSet(InitRedis, InitLogger, InitDB, InitMongoDB)
 
 var userSvcProviderSet = wire.NewSet(dao.NewUserDAO, cache.NewUserCache, repository.NewUserRepository, service.NewUserService, web.NewUserHandler)
 
 var codeSvcProviderSet = wire.NewSet(cache.NewRedisCodeCache, repository.NewCodeRepository, service.NewCodeService)
 
-var articleSvcProviderSet = wire.NewSet(article2.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
+var articleSvcProviderSet = wire.NewSet(article.NewGORMArticleDAO, article2.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)

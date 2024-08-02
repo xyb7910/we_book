@@ -16,7 +16,7 @@ import (
 	"we_book/ioc"
 )
 
-var thirdProviderSet = wire.NewSet(InitRedis, InitLogger, InitDB)
+var thirdProviderSet = wire.NewSet(InitRedis, InitLogger, InitDB, InitMongoDB)
 var userSvcProviderSet = wire.NewSet(dao.NewUserDAO, cache.NewUserCache, repository.NewUserRepository, service.NewUserService, web.NewUserHandler)
 var codeSvcProviderSet = wire.NewSet(cache.NewRedisCodeCache, repository.NewCodeRepository, service.NewCodeService)
 var articleSvcProviderSet = wire.NewSet(article2.NewGORMArticleDAO, article.NewArticleRepository, service.NewArticleService, web.NewArticleHandler)
@@ -44,10 +44,13 @@ func InitWebServer() *gin.Engine {
 	return new(gin.Engine)
 }
 
-func InitArticleHandler() *web.ArticleHandler {
+func InitArticleHandler(dao article2.ArticleDAO) *web.ArticleHandler {
 	wire.Build(
+		article.NewArticleRepository,
+		service.NewArticleService,
+		web.NewArticleHandler,
 		thirdProviderSet,
-		articleSvcProviderSet,
+		//articleSvcProviderSet,
 	)
 	return new(web.ArticleHandler)
 }
