@@ -1,20 +1,23 @@
 package web
 
 import (
+	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"we_book/internal/domain"
-	"we_book/internal/pkg/logger"
 	"we_book/internal/service"
 	ijwt "we_book/internal/web/jwt"
+	"we_book/pkg/ginx/wrapper"
+	logger2 "we_book/pkg/logger"
 )
 
 type ArticleHandler struct {
 	svc service.ArticleService
-	l   logger.V1
+	l   logger2.V1
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.V1) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, l logger2.V1) *ArticleHandler {
 	return &ArticleHandler{
 		svc: svc,
 		l:   l,
@@ -27,6 +30,108 @@ func (at *ArticleHandler) RegisterRouters(server *gin.Engine) {
 	article.POST("/edit", at.Edit)
 	article.POST("/publish", at.Publish)
 	article.POST("/withdraw", at.Withdraw)
+	article.POST("/list",
+		wrapper.WarpBodyANDToken[ListReq, ijwt.UserClaims](at.List))
+	article.GET("/detail/:id",
+		wrapper.WrapToken[ijwt.UserClaims](at.Detail))
+
+	pub := article.Group("/pub")
+	pub.GET("/:id", at.PubDetail)
+}
+
+func (at *ArticleHandler) PubDetail(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "id error",
+		})
+		return
+	}
+	art, err := at.svc.GetPubById(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "system error",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "success",
+		Data: ArticleVO{
+			Id:      art.Id,
+			Title:   art.Title,
+			Content: art.Content,
+			Status:  uint8(art.Status),
+			Author:  art.Author.Name,
+			Ctime:   art.Ctime.Format("2006-01-02 15:04:05"),
+			Utime:   art.Utime.Format("2006-01-02 15:04:05"),
+		},
+	})
+}
+
+func (at *ArticleHandler) Detail(ctx *gin.Context, claims ijwt.UserClaims) (Result, error) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return Result{
+			Code: 4,
+			Msg:  "id error",
+		}, err
+	}
+	art, err := at.svc.GetById(ctx, id)
+	if err != nil {
+		return Result{
+			Code: 5,
+			Msg:  "system error",
+		}, err
+	}
+	if art.Author.Id != claims.Uid {
+		// 此时用户为非法攻击用户
+		// 应该报警
+		return Result{
+			Code: 4,
+			Msg:  "not your article",
+		}, err
+	}
+	return Result{
+		Code: 2,
+		Msg:  "success",
+		Data: ArticleVO{
+			Id:      art.Id,
+			Title:   art.Title,
+			Content: art.Content,
+			Status:  uint8(art.Status),
+			Ctime:   art.Ctime.Format("2006-01-02 15:04:05"),
+			Utime:   art.Utime.Format("2006-01-02 15:04:05"),
+		},
+	}, nil
+}
+
+func (at *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (Result, error) {
+	res, err := at.svc.List(ctx, uc.Uid, req.OffSet, req.Limit)
+	if err != nil {
+		return Result{
+			Code: 5,
+			Msg:  "system error",
+		}, err
+	}
+	return Result{
+		Code: 2,
+		Msg:  "success",
+		Data: slice.Map[domain.Article, ArticleVO](res,
+			func(idx int, src domain.Article) ArticleVO {
+				return ArticleVO{
+					Id:       src.Id,
+					Title:    src.Title,
+					Abstract: src.Abstract(),
+					Ctime:    src.Ctime.Format("2006-01-02 15:04:05"),
+					Utime:    src.Utime.Format("2006-01-02 15:04:05"),
+				}
+			}),
+	}, nil
 }
 
 func (at *ArticleHandler) Edit(ctx *gin.Context) {
@@ -129,20 +234,4 @@ func (at *ArticleHandler) Withdraw(ctx *gin.Context) {
 		Code: 2,
 		Msg:  "success",
 	})
-}
-
-type ArticleReq struct {
-	Id      int64  `json:"id"`
-	Title   string `json:"title"`
-	Content string `json:"content"`
-}
-
-func (req ArticleReq) toDomain(uid int64) domain.Article {
-	return domain.Article{
-		Title:   req.Title,
-		Content: req.Content,
-		Author: domain.Author{
-			Id: uid,
-		},
-	}
 }

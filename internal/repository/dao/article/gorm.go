@@ -16,6 +16,28 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	return &GORMArticleDAO{db: db}
 }
 
+func (g *GORMArticleDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	var pub PublishedArticle
+	err := g.db.WithContext(ctx).Where("id = ?", id).First(&pub).Error
+	return pub, err
+}
+
+func (g *GORMArticleDAO) GetById(ctx context.Context, id int64) (Article, error) {
+	var article Article
+	err := g.db.WithContext(ctx).Where("id = ?", id).First(&article).First(&article).Error
+	return article, err
+}
+
+func (g *GORMArticleDAO) GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]Article, error) {
+	var articles []Article
+	err := g.db.WithContext(ctx).Where("author_id = ?", uid).
+		Offset(offset).
+		Limit(limit).
+		Order("ctime desc").
+		Find(&articles).Error
+	return articles, err
+}
+
 func (g *GORMArticleDAO) Transaction(ctx context.Context, bizFunc func(txDAO ArticleDAO) error) error {
 	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		txDAO := NewGORMArticleDAO(tx)

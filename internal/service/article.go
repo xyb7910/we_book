@@ -17,6 +17,9 @@ type ArticleService interface {
 	Save(ctx context.Context, article domain.Article) (int64, error)
 	Publish(ctx context.Context, article domain.Article) (int64, error)
 	Withdraw(ctx context.Context, article domain.Article) error
+	List(ctx context.Context, uid int64, set int, limit int) ([]domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
+	GetPubById(ctx context.Context, id int64) (domain.Article, error)
 }
 
 func NewArticleService(repo article.ArticleRepository) ArticleService {
@@ -29,6 +32,18 @@ func (asv *articleService) Withdraw(ctx context.Context, art domain.Article) err
 
 func NewArticleServiceV1(readerRepo article.ArticleReaderRepository, authorRepo article.ArticleAuthorRepository) ArticleService {
 	return &articleService{readerRepo: readerRepo, authorRepo: authorRepo}
+}
+
+func (asv *articleService) GetPubById(ctx context.Context, id int64) (domain.Article, error) {
+	return asv.repo.GetPubById(ctx, id)
+}
+
+func (asv *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {
+	return asv.repo.GetById(ctx, id)
+}
+
+func (asv *articleService) List(ctx context.Context, uid int64, set int, limit int) ([]domain.Article, error) {
+	return asv.repo.List(ctx, uid, set, limit)
 }
 
 func (asv *articleService) Edit(ctx context.Context, article domain.Article) (int64, error) {
