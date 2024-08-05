@@ -3,6 +3,7 @@ package web
 import (
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"we_book/internal/domain"
@@ -13,8 +14,10 @@ import (
 )
 
 type ArticleHandler struct {
-	svc service.ArticleService
-	l   logger2.V1
+	svc     service.ArticleService
+	l       logger2.V1
+	intrSvc service.InteractiveService
+	biz     string
 }
 
 func NewArticleHandler(svc service.ArticleService, l logger2.V1) *ArticleHandler {
@@ -37,6 +40,8 @@ func (at *ArticleHandler) RegisterRouters(server *gin.Engine) {
 
 	pub := article.Group("/pub")
 	pub.GET("/:id", at.PubDetail)
+	pub.POST("/like",
+		wrapper.WarpBodyANDToken[LikeReq, ijwt.UserClaims](at.Like))
 }
 
 func (at *ArticleHandler) PubDetail(ctx *gin.Context) {
@@ -49,14 +54,38 @@ func (at *ArticleHandler) PubDetail(ctx *gin.Context) {
 		})
 		return
 	}
-	art, err := at.svc.GetPubById(ctx, id)
+	var eg errgroup.Group
+	var art domain.Article
+	eg.Go(func() error {
+		art, err = at.svc.GetPubById(ctx, id)
+		return err
+	})
+	var _ domain.Interactive
+	eg.Go(func() error {
+		uc := ctx.MustGet("claims").(*ijwt.UserClaims)
+		_, err = at.intrSvc.Get(ctx, at.biz, id, uc.Uid)
+		return err
+	})
+	err = eg.Wait()
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "system error",
+			Data: nil,
 		})
-		return
 	}
+
+	go func() {
+		// 增加阅读计数
+		er := at.intrSvc.IncrReadCnt(ctx, at.biz, art.Id)
+		if er != nil {
+			at.l.Error("add read count error",
+				logger2.Int64("aid", art.Id),
+				logger2.Error(er),
+			)
+		}
+	}()
+
 	ctx.JSON(http.StatusOK, Result{
 		Code: 2,
 		Msg:  "success",
@@ -234,4 +263,25 @@ func (at *ArticleHandler) Withdraw(ctx *gin.Context) {
 		Code: 2,
 		Msg:  "success",
 	})
+}
+
+func (at *ArticleHandler) Like(ctx *gin.Context, req LikeReq, claims ijwt.UserClaims) (Result, error) {
+	var err error
+	if req.Like {
+		err = at.intrSvc.Like(ctx, at.biz, req.Id, claims.Uid)
+	} else {
+		err = at.intrSvc.CancelLike(ctx, at.biz, req.Id, claims.Uid)
+	}
+
+	if err != nil {
+		return Result{
+			Code: 5,
+			Msg:  "system error",
+			Data: nil,
+		}, err
+	}
+	return Result{
+		Code: 2,
+		Msg:  "success",
+	}, nil
 }
