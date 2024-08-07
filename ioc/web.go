@@ -9,11 +9,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"strings"
 	"time"
-	"we_book/internal/pkg/ginx/middlewares/logger"
-	logger2 "we_book/internal/pkg/logger"
 	"we_book/internal/web"
 	ijwt "we_book/internal/web/jwt"
 	"we_book/internal/web/middleware"
+	logger1 "we_book/pkg/ginx/middlewares/logger"
+	logger2 "we_book/pkg/logger"
 )
 
 func InitWebServer(mdls []gin.HandlerFunc,
@@ -35,7 +35,7 @@ func InitMiddlewares(redisClient redis.Cmdable,
 	store := memstore.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), []byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
 	return []gin.HandlerFunc{
 		corsMiddleware(),
-		logger.NewMiddlewareBuilder(func(ctx context.Context, al *logger.AccessLog) {
+		logger1.NewMiddlewareBuilder(func(ctx context.Context, al *logger1.AccessLog) {
 			l.Debug("HTTP请求", logger2.Field{Key: "al", Value: al})
 		}).AllowReqBody().AllowRespBody().Build(),
 		middleware.NewLoginJWTMiddlewareBuilder(jwtHdl).

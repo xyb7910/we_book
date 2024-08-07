@@ -46,7 +46,7 @@ func (at *ArticleHandler) RegisterRouters(server *gin.Engine) {
 
 func (at *ArticleHandler) PubDetail(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	aid, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 4,
@@ -56,14 +56,14 @@ func (at *ArticleHandler) PubDetail(ctx *gin.Context) {
 	}
 	var eg errgroup.Group
 	var art domain.Article
+	uc := ctx.MustGet("claims").(*ijwt.UserClaims)
 	eg.Go(func() error {
-		art, err = at.svc.GetPubById(ctx, id)
+		art, err = at.svc.GetPubById(ctx, aid, uc.Uid)
 		return err
 	})
 	var _ domain.Interactive
 	eg.Go(func() error {
-		uc := ctx.MustGet("claims").(*ijwt.UserClaims)
-		_, err = at.intrSvc.Get(ctx, at.biz, id, uc.Uid)
+		_, err = at.intrSvc.Get(ctx, at.biz, aid, uc.Uid)
 		return err
 	})
 	err = eg.Wait()

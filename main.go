@@ -13,10 +13,20 @@ func main() {
 	////实现 user 相关路由的注册
 	//u := initUser(db, rdb)
 	//u.RegisterRoute(server)
-	server := InitWebServer()
+	//server := InitWebServer()
 	//InitViperV2()
 	//InitLogger()
-	_ = server.Run(":8080")
+	//_ = server.Run(":8080")
+
+	app := InitWebServer()
+	for _, c := range app.consumer {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	server := app.web
+	server.Run(":8080")
 }
 
 func InitLogger() {

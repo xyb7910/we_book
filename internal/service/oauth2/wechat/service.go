@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"we_book/internal/domain"
-	"we_book/internal/pkg/logger"
+	logger2 "we_book/pkg/logger"
 )
 
 var redirectUrl = url.PathEscape("https://test.com/oauth2/wechat/callback")
@@ -22,7 +22,7 @@ type service struct {
 	appId     string
 	appSecret string
 	client    *http.Client
-	logger    logger.V1
+	logger    logger2.V1
 }
 
 type Result struct {
@@ -38,7 +38,7 @@ type Result struct {
 	UnionID string `json:"unionid"`
 }
 
-func NewService(appId string, appSecret string, l logger.V1) Service {
+func NewService(appId string, appSecret string, l logger2.V1) Service {
 	return &service{
 		appId:     appId,
 		appSecret: appSecret,

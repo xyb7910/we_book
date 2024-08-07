@@ -2,14 +2,18 @@ package service
 
 import (
 	"context"
+	events "we_book/events/article"
 	"we_book/internal/domain"
 	"we_book/internal/repository/article"
+	"we_book/pkg/logger"
 )
 
 type articleService struct {
 	repo       article.ArticleRepository
 	readerRepo article.ArticleReaderRepository
 	authorRepo article.ArticleAuthorRepository
+	l          logger.V1
+	producer   events.Producer
 }
 
 type ArticleService interface {
@@ -19,11 +23,15 @@ type ArticleService interface {
 	Withdraw(ctx context.Context, article domain.Article) error
 	List(ctx context.Context, uid int64, set int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
-	GetPubById(ctx context.Context, id int64) (domain.Article, error)
+	GetPubById(ctx context.Context, aid, uid int64) (domain.Article, error)
 }
 
-func NewArticleService(repo article.ArticleRepository) ArticleService {
-	return &articleService{repo: repo}
+func NewArticleService(repo article.ArticleRepository, l logger.V1, producer events.Producer) ArticleService {
+	return &articleService{
+		repo:     repo,
+		l:        l,
+		producer: producer,
+	}
 }
 
 func (asv *articleService) Withdraw(ctx context.Context, art domain.Article) error {
@@ -34,8 +42,22 @@ func NewArticleServiceV1(readerRepo article.ArticleReaderRepository, authorRepo 
 	return &articleService{readerRepo: readerRepo, authorRepo: authorRepo}
 }
 
-func (asv *articleService) GetPubById(ctx context.Context, id int64) (domain.Article, error) {
-	return asv.repo.GetPubById(ctx, id)
+func (asv *articleService) GetPubById(ctx context.Context, aid, uid int64) (domain.Article, error) {
+	art, err := asv.repo.GetPubById(ctx, aid)
+	if err == nil {
+		go func() {
+			er := asv.producer.ProducerReadEvent(
+				ctx,
+				events.ReadEvent{
+					Uid: uid,
+					Aid: aid,
+				})
+			if er == nil {
+				asv.l.Error("producer read event error")
+			}
+		}()
+	}
+	return art, err
 }
 
 func (asv *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {

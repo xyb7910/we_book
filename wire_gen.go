@@ -7,10 +7,12 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	article3 "we_book/events/article"
 	"we_book/internal/repository"
+	article2 "we_book/internal/repository/article"
 	"we_book/internal/repository/cache"
 	"we_book/internal/repository/dao"
+	"we_book/internal/repository/dao/article"
 	"we_book/internal/service"
 	"we_book/internal/web"
 	"we_book/internal/web/jwt"
@@ -19,7 +21,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	cmdable := ioc.InitRedis()
 	handler := jwt.NewRedisJWTHandler(cmdable)
 	v1 := ioc.InitLogger()
@@ -34,9 +36,25 @@ func InitWebServer() *gin.Engine {
 	smsService := ioc.InitSMSService()
 	codeService := service.NewCodeService(codeRepository, smsService)
 	userHandler := web.NewUserHandler(userService, codeService, handler)
+	articleDAO := article.NewGORMArticleDAO(db)
+	articleRepository := article2.NewArticleRepository(articleDAO)
+	client := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, v1, producer)
+	articleHandler := web.NewArticleHandler(articleService, v1)
 	wechatService := ioc.InitWechatService(v1)
 	wechatHandlerConfig := ioc.NewWechatHandlerConfig()
 	oAuth2WeChatHandler := web.NewOAuth2WeChatHandler(wechatService, userService, handler, wechatHandlerConfig)
-	engine := ioc.InitWebServer(v, userHandler, oAuth2WeChatHandler)
-	return engine
+	engine := ioc.InitWebServer(v, userHandler, articleHandler, oAuth2WeChatHandler)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveRepository := repository.NewCacheReadCntRepository(interactiveCache, interactiveDAO, v1)
+	interactiveReadEventConsumer := article3.NewInteractiveReadEventConsumer(client, interactiveRepository, v1)
+	v2 := ioc.NewConsumers(interactiveReadEventConsumer)
+	app := &App{
+		web:      engine,
+		consumer: v2,
+	}
+	return app
 }

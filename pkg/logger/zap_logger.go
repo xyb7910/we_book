@@ -30,3 +30,7 @@ func (zl *ZapLogger) Warn(msg string, args ...Field) {
 func (zl *ZapLogger) Error(msg string, args ...Field) {
 	zl.l.Error(msg, zl.toZapFields(args)...)
 }
+
+func (zl *ZapLogger) String(s string, path string) Field {
+	panic("implement me")
+}

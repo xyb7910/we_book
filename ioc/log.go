@@ -2,13 +2,13 @@ package ioc
 
 import (
 	"go.uber.org/zap"
-	"we_book/internal/pkg/logger"
+	logger2 "we_book/pkg/logger"
 )
 
-func InitLogger() logger.V1 {
+func InitLogger() logger2.V1 {
 	l, err := zap.NewDevelopment()
 	if err != nil {
 		panic(err)
 	}
-	return logger.NewZapLogger(l)
+	return logger2.NewZapLogger(l)
 }
