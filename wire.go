@@ -28,8 +28,8 @@ func InitWebServer() *App {
 		ioc.NewConsumers,
 
 		// consumer
+		article.NewInteractiveReadEventBatchConsumer,
 		article.NewKafkaProducer,
-		article.NewInteractiveReadEventConsumer,
 
 		// 初始化 DAO
 		dao.NewUserDAO,
