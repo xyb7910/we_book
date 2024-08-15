@@ -12,7 +12,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"we_book/internal/domain"
-	"we_book/internal/pkg/logger"
+	"we_book/pkg/logger"
+
 	"we_book/internal/service"
 	svcmocks "we_book/internal/service/mocks"
 	ijwt "we_book/internal/web/jwt"

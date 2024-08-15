@@ -11,13 +11,14 @@ import (
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context,
 		biz string, bizId int64) error
-	BatchIncrReadCnt(ctx context.Context, ids []int64, bizs []string) error
+	BatchIncrReadCnt(ctx context.Context, ids []int64, bizId []string) error
 	IncrLike(ctx context.Context, biz string, bizId, uid int64) error
 	DecrLike(ctx context.Context, biz string, bizId, uid int64) error
 	AddCollectionItem(ctx context.Context, biz string, bizId, cid int64, uid int64) error
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, id int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, uid int64) (bool, error)
+	AddRecord(ctx context.Context, aid int64, uid int64) error
 }
 
 type CacheReadCntRepository struct {
@@ -26,13 +27,18 @@ type CacheReadCntRepository struct {
 	l     logger.V1
 }
 
-func (c *CacheReadCntRepository) BatchIncrReadCnt(ctx context.Context, ids []int64, bizs []string) error {
-	err := c.dao.BatchIncrReadCnt(ctx, ids, bizs)
+func (c *CacheReadCntRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {
+	// TODO:implement me
+	panic("implement me")
+}
+
+func (c *CacheReadCntRepository) BatchIncrReadCnt(ctx context.Context, ids []int64, bizId []string) error {
+	err := c.dao.BatchIncrReadCnt(ctx, ids, bizId)
 	if err != nil {
 		return err
 	}
 	// 这里要批处理 redis
-	//return c.cache.BatchIncrReadCntIfPresent(ctx, ids, bizs)
+	//return c.cache.BatchIncrReadCntIfPresent(ctx, ids, bizId)
 	return nil
 }
 

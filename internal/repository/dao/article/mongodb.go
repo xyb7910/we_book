@@ -19,6 +19,21 @@ type MongoDBDAO struct {
 	idGen   IDGenerator
 }
 
+func (m *MongoDBDAO) GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MongoDBDAO) GetById(ctx context.Context, id int64) (Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MongoDBDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *MongoDBDAO) UpdateById(ctx context.Context, art Article) error {
 	filter := bson.M{"id": art.Id, "author_id": art.AuthorId}
 	updates := bson.D{bson.E{"$set", bson.M{

@@ -4,13 +4,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
-	"we_book/internal/web"
 	logger2 "we_book/pkg/logger"
 )
 
 var logger logger2.V1
 
-func WrapBody[T any](l logger2.V1, fn func(ctx *gin.Context, req T) (web.Result, error)) gin.HandlerFunc {
+type Result struct {
+	// 业务代码错误
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data any    `json:"data"`
+}
+
+func WrapBody[T any](l logger2.V1, fn func(ctx *gin.Context, req T) (Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T
 		if err := ctx.Bind(&req); err != nil {
@@ -28,17 +34,17 @@ func WrapBody[T any](l logger2.V1, fn func(ctx *gin.Context, req T) (web.Result,
 	}
 }
 
-func WrapToken[C jwt.Claims](fn func(ctx *gin.Context, claims C) (web.Result, error)) gin.HandlerFunc {
+func WrapToken[C jwt.Claims](fn func(ctx *gin.Context, claims C) (Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		val, ok := ctx.Get("claims")
 		if !ok {
-			ctx.JSON(http.StatusUnauthorized, web.Result{
+			ctx.JSON(http.StatusUnauthorized, Result{
 				Code: 5, Msg: "token 无效", Data: nil,
 			})
 		}
 		c, ok := val.(C)
 		if !ok {
-			ctx.JSON(http.StatusUnauthorized, web.Result{
+			ctx.JSON(http.StatusUnauthorized, Result{
 				Code: 5, Msg: "token 错误", Data: nil,
 			})
 		}
@@ -54,7 +60,7 @@ func WrapToken[C jwt.Claims](fn func(ctx *gin.Context, claims C) (web.Result, er
 	}
 }
 
-func WarpBodyANDToken[T any, C jwt.Claims](fn func(ctx *gin.Context, req T, claims C) (web.Result, error)) gin.HandlerFunc {
+func WarpBodyANDToken[T any, C jwt.Claims](fn func(ctx *gin.Context, req T, claims C) (Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T
 		if err := ctx.Bind(&req); err != nil {
@@ -63,13 +69,13 @@ func WarpBodyANDToken[T any, C jwt.Claims](fn func(ctx *gin.Context, req T, clai
 
 		val, ok := ctx.Get("claims")
 		if !ok {
-			ctx.JSON(http.StatusUnauthorized, web.Result{
+			ctx.JSON(http.StatusUnauthorized, Result{
 				Code: 5, Msg: "token 无效", Data: nil,
 			})
 		}
 		c, ok := val.(C)
 		if !ok {
-			ctx.JSON(http.StatusUnauthorized, web.Result{
+			ctx.JSON(http.StatusUnauthorized, Result{
 				Code: 5, Msg: "token 错误", Data: nil,
 			})
 		}

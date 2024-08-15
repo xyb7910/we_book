@@ -11,15 +11,26 @@ type ReadEvent struct {
 	Aid int64
 }
 
+type ReadEventV1 struct {
+	Uids []int64
+	Aids []int64
+}
+
 type Producer interface {
 	ProducerReadEvent(ctx context.Context, event ReadEvent) error
+	ProducerReadEventV1(ctx context.Context, info ReadEventV1)
 }
 
 type KafkaProducer struct {
 	producer sarama.SyncProducer
 }
 
-func (k KafkaProducer) ProducerReadEvent(ctx context.Context, event ReadEvent) error {
+func (k *KafkaProducer) ProducerReadEventV1(ctx context.Context, info ReadEventV1) {
+	// TODO: implement me
+	panic("implement me")
+}
+
+func (k *KafkaProducer) ProducerReadEvent(ctx context.Context, event ReadEvent) error {
 	data, err := json.Marshal(event)
 	if err != nil {
 		return err

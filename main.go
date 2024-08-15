@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -17,7 +18,12 @@ func main() {
 	//InitViperV2()
 	//InitLogger()
 	//_ = server.Run(":8080")
-
+	InitViper()
+	InitLogger()
+	keys := viper.AllKeys()
+	fmt.Println(keys)
+	settings := viper.AllSettings()
+	fmt.Println(settings)
 	app := InitWebServer()
 	for _, c := range app.consumer {
 		err := c.Start()

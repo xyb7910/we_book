@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 	events "we_book/events/article"
 	"we_book/internal/domain"
 	"we_book/internal/repository/article"
@@ -14,6 +15,12 @@ type articleService struct {
 	authorRepo article.ArticleAuthorRepository
 	l          logger.V1
 	producer   events.Producer
+	ch         chan readInfo
+}
+
+type readInfo struct {
+	Uid int64
+	Aid int64
 }
 
 type ArticleService interface {
@@ -31,6 +38,45 @@ func NewArticleService(repo article.ArticleRepository, l logger.V1, producer eve
 		repo:     repo,
 		l:        l,
 		producer: producer,
+		//ch: make(chan readInfo, 10),
+	}
+}
+
+func NewArticleServiceV2(repo article.ArticleRepository,
+	l logger.V1, producer events.Producer) ArticleService {
+	ch := make(chan readInfo, 10)
+	go func() {
+		for {
+			Uids := make([]int64, 0, 10)
+			Aids := make([]int64, 0, 10)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			for i := 0; i < 10; i++ {
+				select {
+				case <-ctx.Done():
+					break
+				case Info, ok := <-ch:
+					if !ok {
+						cancel()
+						return
+					}
+					Uids = append(Uids, Info.Uid)
+					Aids = append(Aids, Info.Aid)
+				}
+			}
+			cancel()
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+			producer.ProducerReadEventV1(ctx, events.ReadEventV1{
+				Uids: Uids,
+				Aids: Aids,
+			})
+			cancel()
+		}
+	}()
+	return &articleService{
+		repo:     repo,
+		producer: producer,
+		l:        l,
+		ch:       ch,
 	}
 }
 
@@ -54,6 +100,13 @@ func (asv *articleService) GetPubById(ctx context.Context, aid, uid int64) (doma
 				})
 			if er == nil {
 				asv.l.Error("producer read event error")
+			}
+		}()
+
+		go func() {
+			asv.ch <- readInfo{
+				Uid: uid,
+				Aid: aid,
 			}
 		}()
 	}

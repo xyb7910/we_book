@@ -50,8 +50,8 @@ func InitWebServer() *App {
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	interactiveRepository := repository.NewCacheReadCntRepository(interactiveCache, interactiveDAO, v1)
-	interactiveReadEventConsumer := article3.NewInteractiveReadEventConsumer(client, interactiveRepository, v1)
-	v2 := ioc.NewConsumers(interactiveReadEventConsumer)
+	interactiveReadEventBatchConsumer := article3.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, v1)
+	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
 	app := &App{
 		web:      engine,
 		consumer: v2,

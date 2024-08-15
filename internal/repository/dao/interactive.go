@@ -17,7 +17,7 @@ type InteractiveDAO interface {
 	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
 	InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error
 	GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (UserCollectionBiz, error)
-	BatchIncrReadCnt(ctx context.Context, ids []int64, bizs []string) error
+	BatchIncrReadCnt(ctx context.Context, ids []int64, biz []string) error
 }
 
 type GORMInteractiveDAO struct {

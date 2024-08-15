@@ -101,18 +101,18 @@ func (at *ArticleHandler) PubDetail(ctx *gin.Context) {
 	})
 }
 
-func (at *ArticleHandler) Detail(ctx *gin.Context, claims ijwt.UserClaims) (Result, error) {
+func (at *ArticleHandler) Detail(ctx *gin.Context, claims ijwt.UserClaims) (wrapper.Result, error) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return Result{
+		return wrapper.Result{
 			Code: 4,
 			Msg:  "id error",
 		}, err
 	}
 	art, err := at.svc.GetById(ctx, id)
 	if err != nil {
-		return Result{
+		return wrapper.Result{
 			Code: 5,
 			Msg:  "system error",
 		}, err
@@ -120,12 +120,12 @@ func (at *ArticleHandler) Detail(ctx *gin.Context, claims ijwt.UserClaims) (Resu
 	if art.Author.Id != claims.Uid {
 		// 此时用户为非法攻击用户
 		// 应该报警
-		return Result{
+		return wrapper.Result{
 			Code: 4,
 			Msg:  "not your article",
 		}, err
 	}
-	return Result{
+	return wrapper.Result{
 		Code: 2,
 		Msg:  "success",
 		Data: ArticleVO{
@@ -139,15 +139,15 @@ func (at *ArticleHandler) Detail(ctx *gin.Context, claims ijwt.UserClaims) (Resu
 	}, nil
 }
 
-func (at *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (Result, error) {
+func (at *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (wrapper.Result, error) {
 	res, err := at.svc.List(ctx, uc.Uid, req.OffSet, req.Limit)
 	if err != nil {
-		return Result{
+		return wrapper.Result{
 			Code: 5,
 			Msg:  "system error",
 		}, err
 	}
-	return Result{
+	return wrapper.Result{
 		Code: 2,
 		Msg:  "success",
 		Data: slice.Map[domain.Article, ArticleVO](res,
@@ -265,7 +265,7 @@ func (at *ArticleHandler) Withdraw(ctx *gin.Context) {
 	})
 }
 
-func (at *ArticleHandler) Like(ctx *gin.Context, req LikeReq, claims ijwt.UserClaims) (Result, error) {
+func (at *ArticleHandler) Like(ctx *gin.Context, req LikeReq, claims ijwt.UserClaims) (wrapper.Result, error) {
 	var err error
 	if req.Like {
 		err = at.intrSvc.Like(ctx, at.biz, req.Id, claims.Uid)
@@ -274,13 +274,13 @@ func (at *ArticleHandler) Like(ctx *gin.Context, req LikeReq, claims ijwt.UserCl
 	}
 
 	if err != nil {
-		return Result{
+		return wrapper.Result{
 			Code: 5,
 			Msg:  "system error",
 			Data: nil,
 		}, err
 	}
-	return Result{
+	return wrapper.Result{
 		Code: 2,
 		Msg:  "success",
 	}, nil
