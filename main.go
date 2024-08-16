@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 func main() {
@@ -18,6 +20,8 @@ func main() {
 	//InitViperV2()
 	//InitLogger()
 	//_ = server.Run(":8080")
+	InitPrometheus()
+
 	InitViper()
 	InitLogger()
 	keys := viper.AllKeys()
@@ -33,6 +37,13 @@ func main() {
 	}
 	server := app.web
 	server.Run(":8080")
+}
+
+func InitPrometheus() {
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":8081", nil)
+	}()
 }
 
 func InitLogger() {

@@ -2,7 +2,7 @@ package domain
 
 type Interactive struct {
 	Biz   string `json:"biz"`
-	BizId string `json:"biz_id"`
+	BizId int    `json:"biz_id"`
 
 	ReadCnt    int64 `json:"read_cnt"`
 	LikedCnt   int64 `json:"liked_cnt"`

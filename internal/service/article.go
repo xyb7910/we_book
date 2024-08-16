@@ -18,11 +18,17 @@ type articleService struct {
 	ch         chan readInfo
 }
 
+func (asv *articleService) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 type readInfo struct {
 	Uid int64
 	Aid int64
 }
 
+//go:generate mockgen -source=article.go -destination=mocks/article.mock.go -package=svcmocks
 type ArticleService interface {
 	Edit(ctx context.Context, article domain.Article) (int64, error)
 	Save(ctx context.Context, article domain.Article) (int64, error)
@@ -31,6 +37,7 @@ type ArticleService interface {
 	List(ctx context.Context, uid int64, set int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPubById(ctx context.Context, aid, uid int64) (domain.Article, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error)
 }
 
 func NewArticleService(repo article.ArticleRepository, l logger.V1, producer events.Producer) ArticleService {
