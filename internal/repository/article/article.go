@@ -27,6 +27,16 @@ type CacheArticleRepository struct {
 	l  logger.V1
 }
 
+func (c *CacheArticleRepository) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
+	res, err := c.dao.ListPub(ctx, start, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map(res, func(idx int, src dao.Article) domain.Article {
+		return c.toDomain(src)
+	}), nil
+}
+
 type ArticleRepository interface {
 	Create(ctx context.Context, article domain.Article) (int64, error)
 	Update(ctx context.Context, article domain.Article) error
@@ -35,6 +45,7 @@ type ArticleRepository interface {
 	List(ctx context.Context, uid int64, set int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPubById(ctx context.Context, id int64) (domain.Article, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error)
 }
 
 func NewArticleRepository(dao article.ArticleDAO) ArticleRepository {

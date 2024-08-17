@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/google/wire"
 	article3 "we_book/events/article"
 	"we_book/internal/repository"
 	article2 "we_book/internal/repository/article"
@@ -49,12 +50,24 @@ func InitWebServer() *App {
 	engine := ioc.InitWebServer(v, userHandler, articleHandler, oAuth2WeChatHandler)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
-	interactiveRepository := repository.NewCacheReadCntRepository(interactiveCache, interactiveDAO, v1)
+	interactiveRepository := repository.NewCacheInteractiveRepository(interactiveCache, interactiveDAO, v1)
 	interactiveReadEventBatchConsumer := article3.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, v1)
 	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
+	interactiveService := service.NewInteractiveService(interactiveRepository, v1)
+	rankingService := service.NewBatchRankingService(articleService, interactiveService)
+	rlockClient := ioc.InitRLockClient(cmdable)
+	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, v1)
+	cron := ioc.InitJobs(v1, rankingJob)
 	app := &App{
 		web:      engine,
 		consumer: v2,
+		corn:     cron,
 	}
 	return app
 }
+
+// wire.go:
+
+var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCacheInteractiveRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)
+
+var rankingServerProvider = wire.NewSet(repository.NewRankingRepository, cache.NewRankingRedisCache, service.NewBatchRankingService)

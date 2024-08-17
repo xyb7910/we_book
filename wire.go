@@ -16,6 +16,19 @@ import (
 	"we_book/ioc"
 )
 
+var interactiveSvcProvider = wire.NewSet(
+	service.NewInteractiveService,
+	repository.NewCacheInteractiveRepository,
+	dao.NewGORMInteractiveDAO,
+	cache.NewRedisInteractiveCache,
+)
+
+var rankingServerProvider = wire.NewSet(
+	repository.NewRankingRepository,
+	cache.NewRankingRedisCache,
+	service.NewBatchRankingService,
+)
+
 func InitWebServer() *App {
 	wire.Build(
 		// 首先引入最基本的第三方依赖
@@ -24,6 +37,13 @@ func InitWebServer() *App {
 		ioc.InitLogger,
 
 		ioc.InitKafka,
+
+		interactiveSvcProvider,
+		rankingServerProvider,
+		ioc.InitRankingJob,
+		ioc.InitJobs,
+		ioc.InitRLockClient,
+
 		ioc.NewSyncProducer,
 		ioc.NewConsumers,
 
@@ -34,15 +54,12 @@ func InitWebServer() *App {
 		// 初始化 DAO
 		dao.NewUserDAO,
 		article3.NewGORMArticleDAO,
-		dao.NewGORMInteractiveDAO,
 
-		cache.NewRedisInteractiveCache,
 		cache.NewUserCache,
 		cache.NewRedisCodeCache,
 
 		repository.NewUserRepository,
 		repository.NewCodeRepository,
-		repository.NewCacheReadCntRepository,
 		article2.NewArticleRepository,
 
 		service.NewUserService,

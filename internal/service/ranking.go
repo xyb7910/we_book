@@ -5,10 +5,10 @@ import (
 	"errors"
 	"github.com/ecodeclub/ekit/queue"
 	"github.com/ecodeclub/ekit/slice"
-	"log"
 	"math"
 	"time"
 	"we_book/internal/domain"
+	"we_book/internal/repository"
 )
 
 type RankingService interface {
@@ -19,6 +19,7 @@ type RankingService interface {
 type BatchRankingService struct {
 	artSvc    ArticleService
 	interSvc  InteractiveService
+	repo      repository.RankingRepository
 	batchSize int
 	n         int
 	scoreFunc func(t time.Time, likeCnt int64) float64
@@ -29,8 +30,8 @@ func (b *BatchRankingService) TopN(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	log.Println(res)
-	return nil
+	//log.Println(res)
+	return b.repo.ReplaceTopN(ctx, res)
 }
 
 func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error) {
@@ -81,7 +82,7 @@ func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error
 			if errors.Is(err, queue.ErrOutOfCapacity) {
 				val, _ := topN.Dequeue()
 				if val.score < score {
-					err = topN.Enqueue(Score{
+					_ = topN.Enqueue(Score{
 						art:   art,
 						score: score,
 					})
@@ -91,7 +92,7 @@ func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error
 			}
 		}
 
-		if len(arts) < b.batchSize {
+		if len(arts) < b.batchSize || now.Sub(arts[len(arts)-1].Ctime).Hours() > 7*24 {
 			break
 		}
 		offset = offset + len(arts)
@@ -108,14 +109,15 @@ func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error
 	return res, nil
 }
 
-func NewBatchRankingService(artSvc ArticleService, interSvc InteractiveService) *BatchRankingService {
+func NewBatchRankingService(artSvc ArticleService, interSvc InteractiveService) RankingService {
 	return &BatchRankingService{
 		artSvc:    artSvc,
 		interSvc:  interSvc,
 		batchSize: 100,
 		n:         100,
 		scoreFunc: func(t time.Time, likeCnt int64) float64 {
-			return float64(likeCnt-1) / math.Pow(float64(likeCnt+2), 1.5)
+			sec := time.Since(t).Seconds()
+			return float64(likeCnt-1) / math.Pow(float64(sec+2), 1.5)
 		},
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -21,7 +22,6 @@ func main() {
 	//InitLogger()
 	//_ = server.Run(":8080")
 	InitPrometheus()
-
 	InitViper()
 	InitLogger()
 	keys := viper.AllKeys()
@@ -34,6 +34,12 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+	}
+	ctx := app.corn.Stop()
+	tm := time.NewTimer(time.Second * 10)
+	select {
+	case <-tm.C:
+	case <-ctx.Done():
 	}
 	server := app.web
 	server.Run(":8080")

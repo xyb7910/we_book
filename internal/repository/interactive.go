@@ -133,7 +133,7 @@ func (c *CacheReadCntRepository) toDomain(intro dao.Interactive) domain.Interact
 	}
 }
 
-func NewCacheReadCntRepository(cache cache.InteractiveCache, dao dao.InteractiveDAO, l logger.V1) InteractiveRepository {
+func NewCacheInteractiveRepository(cache cache.InteractiveCache, dao dao.InteractiveDAO, l logger.V1) InteractiveRepository {
 	return &CacheReadCntRepository{
 		cache: cache,
 		dao:   dao,

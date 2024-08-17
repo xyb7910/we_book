@@ -12,6 +12,13 @@ type GORMArticleDAO struct {
 	db *gorm.DB
 }
 
+func (g *GORMArticleDAO) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]Article, error) {
+	var res []Article
+	milli := start.UnixMilli()
+	err := g.db.WithContext(ctx).Where("utime<?", milli).Order("utime desc").Offset(offset).Limit(limit).Find(&res).Error
+	return res, err
+}
+
 func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	return &GORMArticleDAO{db: db}
 }

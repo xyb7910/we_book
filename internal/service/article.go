@@ -19,8 +19,7 @@ type articleService struct {
 }
 
 func (asv *articleService) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
-	//TODO implement me
-	panic("implement me")
+	return asv.repo.ListPub(ctx, start, offset, limit)
 }
 
 type readInfo struct {
