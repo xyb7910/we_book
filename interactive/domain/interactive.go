@@ -2,7 +2,7 @@ package domain
 
 type Interactive struct {
 	Biz   string `json:"biz"`
-	BizId int    `json:"biz_id"`
+	BizId int64  `json:"biz_id"`
 
 	ReadCnt    int64 `json:"read_cnt"`
 	LikedCnt   int64 `json:"liked_cnt"`
@@ -10,15 +10,4 @@ type Interactive struct {
 
 	Liked     bool `json:"liked"`
 	Collected bool `json:"collected"`
-}
-
-type Self struct {
-	Liked     bool `json:"liked"`
-	Collected bool `json:"collected"`
-}
-
-type Collection struct {
-	Name  string
-	Uid   int64
-	Items []Resource
 }

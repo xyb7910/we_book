@@ -6,7 +6,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"strconv"
 	"time"
-	"we_book/internal/domain"
+	"we_book/interactive/domain"
 )
 
 var (

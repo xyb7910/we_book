@@ -7,6 +7,7 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"math"
 	"time"
+	"we_book/interactive/service"
 	"we_book/internal/domain"
 	"we_book/internal/repository"
 )
@@ -18,7 +19,7 @@ type RankingService interface {
 
 type BatchRankingService struct {
 	artSvc    ArticleService
-	interSvc  InteractiveService
+	interSvc  service.InteractiveService
 	repo      repository.RankingRepository
 	batchSize int
 	n         int
@@ -109,7 +110,7 @@ func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error
 	return res, nil
 }
 
-func NewBatchRankingService(artSvc ArticleService, interSvc InteractiveService) RankingService {
+func NewBatchRankingService(artSvc ArticleService, interSvc service.InteractiveService) RankingService {
 	return &BatchRankingService{
 		artSvc:    artSvc,
 		interSvc:  interSvc,

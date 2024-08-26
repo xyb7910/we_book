@@ -5,7 +5,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 	"we_book/events"
-	"we_book/events/article"
+	events2 "we_book/interactive/events"
 )
 
 type Config struct {
@@ -52,6 +52,6 @@ func NewSyncProducer(client sarama.Client) sarama.SyncProducer {
 	return res
 }
 
-func NewConsumers(c1 *article.InteractiveReadEventBatchConsumer) []events.Consumer {
+func NewConsumers(c1 *events2.InteractiveReadEventBatchConsumer) []events.Consumer {
 	return []events.Consumer{c1}
 }

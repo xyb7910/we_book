@@ -6,6 +6,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
+	domain2 "we_book/interactive/domain"
+	service2 "we_book/interactive/service"
 	"we_book/internal/domain"
 	"we_book/internal/service"
 	ijwt "we_book/internal/web/jwt"
@@ -16,7 +18,7 @@ import (
 type ArticleHandler struct {
 	svc     service.ArticleService
 	l       logger2.V1
-	intrSvc service.InteractiveService
+	intrSvc service2.InteractiveService
 	biz     string
 }
 
@@ -61,7 +63,7 @@ func (at *ArticleHandler) PubDetail(ctx *gin.Context) {
 		art, err = at.svc.GetPubById(ctx, aid, uc.Uid)
 		return err
 	})
-	var _ domain.Interactive
+	var _ domain2.Interactive
 	eg.Go(func() error {
 		_, err = at.intrSvc.Get(ctx, at.biz, aid, uc.Uid)
 		return err

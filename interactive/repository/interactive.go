@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
-	"we_book/internal/domain"
-	"we_book/internal/repository/cache"
-	"we_book/internal/repository/dao"
+	"we_book/interactive/domain"
+	"we_book/interactive/repository/cache"
+	"we_book/interactive/repository/dao"
 	"we_book/pkg/logger"
 )
 

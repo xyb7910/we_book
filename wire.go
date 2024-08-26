@@ -5,6 +5,11 @@ package main
 import (
 	"github.com/google/wire"
 	article "we_book/events/article"
+	"we_book/interactive/events"
+	repository2 "we_book/interactive/repository"
+	cache2 "we_book/interactive/repository/cache"
+	dao2 "we_book/interactive/repository/dao"
+	service2 "we_book/interactive/service"
 	"we_book/internal/repository"
 	article2 "we_book/internal/repository/article"
 	"we_book/internal/repository/cache"
@@ -17,10 +22,10 @@ import (
 )
 
 var interactiveSvcProvider = wire.NewSet(
-	service.NewInteractiveService,
-	repository.NewCacheInteractiveRepository,
-	dao.NewGORMInteractiveDAO,
-	cache.NewRedisInteractiveCache,
+	service2.NewInteractiveService,
+	repository2.NewCacheInteractiveRepository,
+	dao2.NewGORMInteractiveDAO,
+	cache2.NewRedisInteractiveCache,
 )
 
 var rankingServerProvider = wire.NewSet(
@@ -48,7 +53,7 @@ func InitWebServer() *App {
 		ioc.NewConsumers,
 
 		// consumer
-		article.NewInteractiveReadEventBatchConsumer,
+		events.NewInteractiveReadEventBatchConsumer,
 		article.NewKafkaProducer,
 
 		// 初始化 DAO
